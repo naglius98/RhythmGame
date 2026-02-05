@@ -1,0 +1,56 @@
+BUILD NOTES
+
+GAME OVERVIEW
+
+The current stage is just a sandbox of the key feature and a skeleton of what the game will look like. It is a rhythm game with 4 rails where notes drop and need to be hit while being on beat with different tracks. A percentage based score will keep track of how accurate you are, with the aim of being as accurate as possible.
+
+CURRENT FEATURES:
+
+The features currently available to the player are the following: the ability to use the keyboard to hit notes, with visual feedback when pressing the button associated with a rail. If the note is missed, then it will disappear when hit outside the zone. If a note is hit within the hit zone, then the notes gets destroyed on impact. The notes are currently randomized on the tracks.
+
+CONTROLS:
+
+D for the first rail.
+F for the second rail.
+J for the third rail.
+K for the fourth rail.
+Q to quit the game.
+
+FUTURE FEATURES:
+
+For the prototype, the following features will be added:
+
+- Menu with:
+	- Song selection;
+	- Quit Game;
+
+- Scoring:
+	- Accuracy tracker;
+	- Total score;
+	- Notes will count for different levels of accuracy based on how close they are to the zone;
+
+- Death:
+	- Death screen upon missing too many notes;
+
+- Note Behaviour:
+	- A note that requires to hold the button;
+	- A note that requires mouse clicking;
+	- More visual feedback for notes hit and precision;
+	- Different notes on different rails will be coloured differently;
+
+- Audio:
+	- 1 track will be fully mapped;
+
+For the final game, the following features will be added:
+
+- Audio:
+	- 3-5 songs will be fully mapped;
+
+- UI:
+	- Better polished effects for visual feedback;
+	- Created the full UI;
+
+- General gameplay:
+	- Polished note precision;
+	- Added new note types and difficulty checks if possible;
+	
