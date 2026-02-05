@@ -28,7 +28,8 @@ public class NoteSpawner : MonoBehaviour
     {
         int randomRail = Random.Range(0, 4);
         Vector3 spawnPos = new Vector3(railPositions[randomRail], spawnHeight, 0);
-        Instantiate(notePrefab, spawnPos, Quaternion.identity);
+        GameObject note = Instantiate(notePrefab, spawnPos, Quaternion.identity);
+        note.GetComponent<Note>().Initialize(randomRail);
     }
 
     void ScheduleNextSpawn()
