@@ -129,8 +129,9 @@ GameObject:
   m_Component:
   - component: {fileID: 123922939}
   - component: {fileID: 123922938}
+  - component: {fileID: 123922940}
   m_Layer: 0
-  m_Name: Hitzone3
+  m_Name: Hitzone2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -209,6 +210,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &123922940
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 123922937}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5274f679d72a49458e85d22c329d138, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HitZonePulse
+  pulseDuration: 0.2
+  pulseScale: 1.5
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -356,6 +371,7 @@ GameObject:
   m_Component:
   - component: {fileID: 534452938}
   - component: {fileID: 534452937}
+  - component: {fileID: 534452939}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -399,6 +415,23 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &534452939
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 534452936}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 714af922cbb947f48a1eec2966cf703b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerInput
+  hitZones:
+  - {fileID: 1120343624}
+  - {fileID: 632826884}
+  - {fileID: 123922937}
+  - {fileID: 1201314326}
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -494,7 +527,7 @@ GameObject:
   - component: {fileID: 631223549}
   - component: {fileID: 631223548}
   m_Layer: 0
-  m_Name: Rail2
+  m_Name: Rail1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -583,8 +616,9 @@ GameObject:
   m_Component:
   - component: {fileID: 632826886}
   - component: {fileID: 632826885}
+  - component: {fileID: 632826887}
   m_Layer: 0
-  m_Name: Hitzone2
+  m_Name: Hitzone1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -663,6 +697,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &632826887
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 632826884}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5274f679d72a49458e85d22c329d138, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HitZonePulse
+  pulseDuration: 0.2
+  pulseScale: 1.5
 --- !u!1 &1101232327
 GameObject:
   m_ObjectHideFlags: 0
@@ -674,7 +722,7 @@ GameObject:
   - component: {fileID: 1101232329}
   - component: {fileID: 1101232328}
   m_Layer: 0
-  m_Name: Rail3
+  m_Name: Rail2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -763,8 +811,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1120343626}
   - component: {fileID: 1120343625}
+  - component: {fileID: 1120343627}
   m_Layer: 0
-  m_Name: Hitzone1
+  m_Name: Hitzone0
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -843,6 +892,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1120343627
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1120343624}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5274f679d72a49458e85d22c329d138, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HitZonePulse
+  pulseDuration: 0.2
+  pulseScale: 1.5
 --- !u!1 &1201314326
 GameObject:
   m_ObjectHideFlags: 0
@@ -853,8 +916,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1201314328}
   - component: {fileID: 1201314327}
+  - component: {fileID: 1201314329}
   m_Layer: 0
-  m_Name: Hitzone4
+  m_Name: Hitzone3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -933,6 +997,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1201314329
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1201314326}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5274f679d72a49458e85d22c329d138, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HitZonePulse
+  pulseDuration: 0.2
+  pulseScale: 1.5
 --- !u!1 &1369337388
 GameObject:
   m_ObjectHideFlags: 0
@@ -944,7 +1022,7 @@ GameObject:
   - component: {fileID: 1369337390}
   - component: {fileID: 1369337389}
   m_Layer: 0
-  m_Name: Rail4
+  m_Name: Rail3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1034,7 +1112,7 @@ GameObject:
   - component: {fileID: 1594921816}
   - component: {fileID: 1594921815}
   m_Layer: 0
-  m_Name: Rail1
+  m_Name: Rail0
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

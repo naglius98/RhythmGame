@@ -3,6 +3,8 @@ using UnityEngine.InputSystem;
 
 public class PlayerInput : MonoBehaviour
 {
+    public GameObject[] hitZones; // List of hit zones
+
     void Update()
     {
         if (Keyboard.current.dKey.wasPressedThisFrame) 
@@ -26,6 +28,16 @@ public class PlayerInput : MonoBehaviour
     void CheckHit(int railIndex)
     {
         Debug.Log($"Rail {railIndex} pressed!");
+
+        // Pulse effect for visual feedback
+        if (hitZones[railIndex] != null)
+        {
+            HitZonePulse pulse = hitZones[railIndex].GetComponent<HitZonePulse>();
+            if (pulse != null)
+            {
+                pulse.TriggerPulse();
+            }
+        }
     }
 }
 
