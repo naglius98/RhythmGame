@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-// Beat Saber Info.dat (root)
+// Beat Saber Info.dat 
 [Serializable]
 public class InfoDat
 {
@@ -34,26 +34,25 @@ public class DifficultyBeatmap
     public float _noteJumpStartBeatOffset;
 }
 
-// Beat Saber difficulty file (v2) - e.g. Normal.dat, Hard.dat
+// Beat Saber difficulty file (v2) 
 [Serializable]
 public class DifficultyDat
 {
     public string _version;
     public NoteData[] _notes;
-    // _obstacles, _events omitted for now
 }
 
 [Serializable]
 public class NoteData
 {
-    public float _time;        // Beat when note reaches the player
-    public int _lineIndex;    // 0-3, maps to our rail
-    public int _lineLayer;    // 0-2, we ignore (or use for future 4x3)
-    public int _type;         // 0 = left, 1 = right, 3 = bomb (skip)
+    public float _time;        // Beat time
+    public int _lineIndex;    // Lines on the track
+    public int _lineLayer;    // Ignored for now
+    public int _type;         //  Left, Right, Bomb
     public int _cutDirection;
 }
 
-// One spawn to perform at a given time (rail + spawn time in seconds)
+// One spawn to perform at a given time
 [Serializable]
 public struct MapNoteSpawn
 {

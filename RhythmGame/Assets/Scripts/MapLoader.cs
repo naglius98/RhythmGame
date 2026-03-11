@@ -3,25 +3,19 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-/// <summary>
-/// Loads Beat Saber-style maps from StreamingAssets/Maps/{SongFolder}/.
-/// Expects: Info.dat, difficulty file (e.g. Normal.dat), and audio file (e.g. song.ogg).
-/// </summary>
+
+// Load the map
 public static class MapLoader
 {
     const string MapsFolder = "Maps";
 
-    /// <summary>
-    /// Full path to a song folder (StreamingAssets/Maps/SongName).
-    /// </summary>
+    /// Full path to a song folder 
     public static string GetSongPath(string songFolderName)
     {
         return Path.Combine(Application.streamingAssetsPath, MapsFolder, songFolderName);
     }
 
-    /// <summary>
-    /// List song folder names inside StreamingAssets/Maps.
-    /// </summary>
+    // List song folder names 
     public static string[] GetAvailableSongFolders()
     {
         string mapsPath = Path.Combine(Application.streamingAssetsPath, MapsFolder);
@@ -35,9 +29,7 @@ public static class MapLoader
         return names;
     }
 
-    /// <summary>
-    /// Load Info.dat from a song folder. Returns null on failure.
-    /// </summary>
+    // Load Info.dat from a song folder
     public static InfoDat LoadInfo(string songFolderName)
     {
         string path = Path.Combine(GetSongPath(songFolderName), "Info.dat");
@@ -63,9 +55,7 @@ public static class MapLoader
         }
     }
 
-    /// <summary>
-    /// Load difficulty file (v2 format). fileName e.g. "Normal.dat" or "Hard.dat".
-    /// </summary>
+    // Load difficulty file as v2 format
     public static DifficultyDat LoadDifficulty(string songFolderName, string fileName)
     {
         string path = Path.Combine(GetSongPath(songFolderName), fileName);
@@ -90,13 +80,13 @@ public static class MapLoader
     const int BombType = 3;
 
     /// <summary>
-    /// Convert map notes to spawn list: beat -> spawn time (seconds), rail index.
-    /// Uses BPM and note travel time so the note reaches the hit zone at the correct beat.
+    /// Convert map notes to spawn list: beat -> spawn time (seconds), rail index
+    /// Uses BPM and note travel time so the note reaches the hit zone at the correct beat
     /// </summary>
     /// <param name="bpm">Beats per minute from Info.dat.</param>
-    /// <param name="travelTimeSeconds">Time for a note to go from spawn Y to hit zone Y at current speed.</param>
-    /// <param name="difficulty">Parsed difficulty (notes array).</param>
-    /// <returns>Sorted list of spawns (by spawnTime).</returns>
+    /// <param name="travelTimeSeconds">Time for a note to go from spawn Y to hit zone Y at current speed</param>
+    /// <param name="difficulty">Parsed difficulty (notes array)</param>
+    /// <returns>Sorted list of spawns (by spawnTime)</returns>
     public static List<MapNoteSpawn> BuildSpawnList(float bpm, float travelTimeSeconds, DifficultyDat difficulty)
     {
         var list = new List<MapNoteSpawn>();
@@ -121,9 +111,8 @@ public static class MapLoader
         return list;
     }
 
-    /// <summary>
-    /// Get the first difficulty beatmap filename from Standard (or first set). Returns null if none.
-    /// </summary>
+    
+    // Get the first difficulty beatmap filename 
     public static string GetFirstDifficultyFilename(InfoDat info, string preferredDifficulty = "Normal")
     {
         if (info?._difficultyBeatmapSets == null || info._difficultyBeatmapSets.Length == 0)
