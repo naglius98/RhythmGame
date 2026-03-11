@@ -55,7 +55,7 @@ public static class MapLoader
         }
     }
 
-    // Load difficulty file as v2 format
+    // Load difficulty file (v2 or v3 format)
     public static DifficultyDat LoadDifficulty(string songFolderName, string fileName)
     {
         string path = Path.Combine(GetSongPath(songFolderName), fileName);
@@ -77,16 +77,38 @@ public static class MapLoader
         }
     }
 
+    // Load difficulty file and build spawn list
+    public static List<MapNoteSpawn> LoadAndBuildSpawnList(string songFolderName, string fileName, float bpm, float travelTimeSeconds)
+    {
+        string path = Path.Combine(GetSongPath(songFolderName), fileName);
+        if (!File.Exists(path))
+        {
+            Debug.LogWarning($"MapLoader: Difficulty file not found at {path}");
+            return new List<MapNoteSpawn>();
+        }
+
+        try
+        {
+            string json = File.ReadAllText(path);
+            var v2 = JsonUtility.FromJson<DifficultyDat>(json);
+            if (v2 != null && v2._notes != null && v2._notes.Length > 0)
+                return BuildSpawnList(bpm, travelTimeSeconds, v2);
+
+            var v3 = JsonUtility.FromJson<DifficultyDatV3>(json);
+            if (v3 != null && v3.colorNotes != null && v3.colorNotes.Length > 0)
+                return BuildSpawnListFromV3(bpm, travelTimeSeconds, v3.colorNotes);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"MapLoader: Failed to parse difficulty file: {e.Message}");
+        }
+
+        return new List<MapNoteSpawn>();
+    }
+
     const int BombType = 3;
 
-    /// <summary>
-    /// Convert map notes to spawn list: beat -> spawn time (seconds), rail index
-    /// Uses BPM and note travel time so the note reaches the hit zone at the correct beat
-    /// </summary>
-    /// <param name="bpm">Beats per minute from Info.dat.</param>
-    /// <param name="travelTimeSeconds">Time for a note to go from spawn Y to hit zone Y at current speed</param>
-    /// <param name="difficulty">Parsed difficulty (notes array)</param>
-    /// <returns>Sorted list of spawns (by spawnTime)</returns>
+    // Convert map notes to spawn list: beat -> spawn time (seconds), rail index (v2 format)
     public static List<MapNoteSpawn> BuildSpawnList(float bpm, float travelTimeSeconds, DifficultyDat difficulty)
     {
         var list = new List<MapNoteSpawn>();
@@ -104,6 +126,28 @@ public static class MapLoader
             float hitTimeSeconds = n._time * secondsPerBeat;
             float spawnTime = hitTimeSeconds - travelTimeSeconds;
 
+            list.Add(new MapNoteSpawn { spawnTime = spawnTime, railIndex = rail });
+        }
+
+        list.Sort((a, b) => a.spawnTime.CompareTo(b.spawnTime));
+        return list;
+    }
+
+    //
+    /// Build spawn list from v3 colorNotes (b=beat, x=line index)
+    public static List<MapNoteSpawn> BuildSpawnListFromV3(float bpm, float travelTimeSeconds, ColorNoteV3[] colorNotes)
+    {
+        var list = new List<MapNoteSpawn>();
+        if (colorNotes == null || colorNotes.Length == 0)
+            return list;
+
+        float secondsPerBeat = 60f / bpm;
+
+        foreach (var n in colorNotes)
+        {
+            int rail = Mathf.Clamp(n.x, 0, 3);
+            float hitTimeSeconds = n.b * secondsPerBeat;
+            float spawnTime = hitTimeSeconds - travelTimeSeconds;
             list.Add(new MapNoteSpawn { spawnTime = spawnTime, railIndex = rail });
         }
 

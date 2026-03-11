@@ -52,6 +52,25 @@ public class NoteData
     public int _cutDirection;
 }
 
+// Beat Saber difficulty file (v3) - uses "colorNotes" instead of "_notes"
+[Serializable]
+public class DifficultyDatV3
+{
+    public string version;
+    public ColorNoteV3[] colorNotes;
+}
+
+[Serializable]
+public class ColorNoteV3
+{
+    public float b;  // beat
+    public int x;    // line index 0-3
+    public int y;    // layer
+    public int c;    // color (0 left, 1 right; bombs are in bombNotes)
+    public int d;    // cut direction
+    public int a;    // angle offset
+}
+
 // One spawn to perform at a given time
 [Serializable]
 public struct MapNoteSpawn
