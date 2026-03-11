@@ -38,6 +38,8 @@ public class GameManager : MonoBehaviour
 
         string folder = songFolderName;
         if (string.IsNullOrEmpty(folder))
+            folder = SongSelectBehaviour.SelectedSongFolder;
+        if (string.IsNullOrEmpty(folder))
         {
             string[] available = MapLoader.GetAvailableSongFolders();
             if (available == null || available.Length == 0)
