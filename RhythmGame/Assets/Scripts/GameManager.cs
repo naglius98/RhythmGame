@@ -27,6 +27,7 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        ScoreManager.Reset();
         if (noteSpawner == null) noteSpawner = FindObjectOfType<NoteSpawner>();
         if (audioSource == null) audioSource = FindObjectOfType<AudioSource>();
         if (audioSource == null)
@@ -44,24 +45,24 @@ public class GameManager : MonoBehaviour
             string[] available = MapLoader.GetAvailableSongFolders();
             if (available == null || available.Length == 0)
             {
-                Debug.LogWarning("GameManager: No song folders in StreamingAssets/Maps. Using random spawner.");
+                Debug.LogWarning("No song folders in StreamingAssets/Maps. Using random spawner.");
                 return;
             }
             folder = available[0];
-            Debug.Log($"GameManager: No song set, using first folder: {folder}");
+            Debug.Log($"No song set, using first folder: {folder}");
         }
 
         InfoDat info = MapLoader.LoadInfo(folder);
         if (info == null)
         {
-            Debug.LogWarning("GameManager: Could not load map. Using random spawner.");
+            Debug.LogWarning("Could not load map. Using random spawner.");
             return;
         }
 
         string diffFile = MapLoader.GetFirstDifficultyFilename(info, preferredDifficulty);
         if (string.IsNullOrEmpty(diffFile))
         {
-            Debug.LogWarning("GameManager: No difficulty file in map. Using random spawner.");
+            Debug.LogWarning("No difficulty file in map. Using random spawner.");
             return;
         }
 
@@ -69,7 +70,7 @@ public class GameManager : MonoBehaviour
         spawnList = MapLoader.LoadAndBuildSpawnList(folder, diffFile, info._beatsPerMinute, travelTime);
         if (spawnList == null || spawnList.Count == 0)
         {
-            Debug.LogWarning("GameManager: No notes in map. Using random spawner.");
+            Debug.LogWarning("No notes in map. Using random spawner.");
             return;
         }
 
@@ -88,7 +89,7 @@ public class GameManager : MonoBehaviour
     {
         if (string.IsNullOrEmpty(audioFileName))
         {
-            Debug.LogWarning("GameManager: No _songFilename in Info.dat.");
+            Debug.LogWarning("No _songFilename in Info.dat.");
             StartMapPlaybackWithOffset();
             yield break;
         }
@@ -114,7 +115,7 @@ public class GameManager : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning($"GameManager: Could not load audio ({req.error}). Starting map without music.");
+                Debug.LogWarning($"Could not load audio ({req.error}). Starting map without music.");
                 StartMapPlaybackWithOffset();
             }
         }

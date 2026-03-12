@@ -12,6 +12,7 @@ public class Note : MonoBehaviour
         
         if (transform.position.y < -6f)
         {
+            ScoreManager.RecordMiss();
             Destroy(gameObject);
         }
     }

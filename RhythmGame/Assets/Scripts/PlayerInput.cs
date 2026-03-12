@@ -69,6 +69,7 @@ public class PlayerInput : MonoBehaviour
             if (hitNote != null)
             {
                 Debug.Log($"HIT! Rail {railIndex}");
+                ScoreManager.RecordHit();
                 RemoveNote(hitNote);
                 Destroy(hitNote.gameObject);
             }
@@ -78,12 +79,14 @@ public class PlayerInput : MonoBehaviour
                 if (earliestNote != null)
                 {
                     Debug.Log($"TOO EARLY! Destroyed note on rail {railIndex}");
+                    ScoreManager.RecordMiss();
                     RemoveNote(earliestNote);
                     Destroy(earliestNote.gameObject);
                 }
                 else
                 {
                     Debug.Log($"MISS! No note in rail {railIndex}");
+                    ScoreManager.RecordMiss();
                 }
             }
         }
