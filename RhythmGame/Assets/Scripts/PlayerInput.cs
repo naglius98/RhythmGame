@@ -20,6 +20,8 @@ public class PlayerInput : MonoBehaviour
 
     void Update()
     {
+        if (PauseMenuBehaviour.IsPaused)
+            return;
         if (Keyboard.current.dKey.wasPressedThisFrame) 
         {
             CheckHit(0);
