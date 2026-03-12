@@ -83,10 +83,9 @@ public class PlayerInput : MonoBehaviour
                     RemoveNote(earliestNote);
                     Destroy(earliestNote.gameObject);
                 }
-                else
+                else // No note in rail at all
                 {
-                    Debug.Log($"MISS! No note in rail {railIndex}");
-                    ScoreManager.RecordMiss();
+                    // Do nothing
                 }
             }
         }
