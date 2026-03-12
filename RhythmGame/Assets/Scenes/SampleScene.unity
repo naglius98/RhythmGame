@@ -280,7 +280,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 631038656}
+      - m_Target: {fileID: 534452941}
         m_TargetAssemblyTypeName: PauseMenuBehaviour, Assembly-CSharp
         m_MethodName: OnContinue
         m_Mode: 1
@@ -918,6 +918,8 @@ GameObject:
   - component: {fileID: 534452937}
   - component: {fileID: 534452939}
   - component: {fileID: 534452940}
+  - component: {fileID: 534452941}
+  - component: {fileID: 534452942}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -995,9 +997,38 @@ MonoBehaviour:
   preferredDifficulty: Hard
   noteSpawner: {fileID: 534452937}
   audioSource: {fileID: 1382823651}
+  gameOverSceneName: GameOver
   loadedSongName: 
   bpm: 0
   spawnCount: 0
+--- !u!114 &534452941
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 534452936}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5e84e7086038874899ce6574b05809d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PauseMenuBehaviour
+  pausePanel: {fileID: 16858531}
+  countdownDisplay: {fileID: 247101005}
+  mainMenuSceneName: MainMenu
+--- !u!114 &534452942
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 534452936}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d88a5d562d829644786c322c2bb0a9c5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScoreDisplay
+  tmpText: {fileID: 276821343}
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -1077,53 +1108,6 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &631038655
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 631038657}
-  - component: {fileID: 631038656}
-  m_Layer: 0
-  m_Name: Managers
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &631038656
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 631038655}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b5e84e7086038874899ce6574b05809d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PauseMenuBehaviour
-  pausePanel: {fileID: 16858531}
-  countdownDisplay: {fileID: 247101005}
-  mainMenuSceneName: MainMenu
---- !u!4 &631038657
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 631038655}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 782.891, y: 605.91534, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1893,7 +1877,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 631038656}
+      - m_Target: {fileID: 534452941}
         m_TargetAssemblyTypeName: PauseMenuBehaviour, Assembly-CSharp
         m_MethodName: OnRestart
         m_Mode: 1
@@ -2743,7 +2727,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 631038656}
+      - m_Target: {fileID: 534452941}
         m_TargetAssemblyTypeName: PauseMenuBehaviour, Assembly-CSharp
         m_MethodName: OnBackToMainMenu
         m_Mode: 1
@@ -2994,4 +2978,3 @@ SceneRoots:
   - {fileID: 1382823652}
   - {fileID: 1780649311}
   - {fileID: 2141476563}
-  - {fileID: 631038657}

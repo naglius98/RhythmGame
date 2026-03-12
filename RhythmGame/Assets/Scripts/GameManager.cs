@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.SceneManagement;
 
 
 public class GameManager : MonoBehaviour
@@ -16,6 +17,9 @@ public class GameManager : MonoBehaviour
     public NoteSpawner noteSpawner;
     public AudioSource audioSource;
 
+    [Tooltip("Scene to load on game over")]
+    public string gameOverSceneName = "GameOver";
+
     [Header("Runtime (read-only)")]
     [SerializeField] string loadedSongName;
     [SerializeField] float bpm;
@@ -24,6 +28,7 @@ public class GameManager : MonoBehaviour
     List<MapNoteSpawn> spawnList;
     float gameStartTime;
     bool gameStarted;
+    bool gameOverTriggered;
 
     void Start()
     {
@@ -79,6 +84,7 @@ public class GameManager : MonoBehaviour
         spawnCount = spawnList.Count;
 
         noteSpawner.UseMapSpawns(spawnList);
+        ScoreManager.SetTotalNotes(spawnList.Count);
         gameStartTime = 0f;
         gameStarted = false;
 
@@ -129,6 +135,18 @@ public class GameManager : MonoBehaviour
         gameStarted = true;
     }
 
+    // Call if song is complete or accuracy drops below 60%
+    public void TriggerGameOver()
+    {
+        Time.timeScale = 1f;
+        if (string.IsNullOrEmpty(gameOverSceneName))
+        {
+            Debug.LogWarning("GameManager: No game over scene name set.");
+            return;
+        }
+        SceneManager.LoadScene(gameOverSceneName);
+    }
+
     void Update()
     {
         if (!gameStarted || spawnList == null || noteSpawner == null || !noteSpawner.IsUsingMap())
@@ -136,5 +154,18 @@ public class GameManager : MonoBehaviour
 
         float elapsed = Time.time - gameStartTime;
         noteSpawner.SpawnFromMapUpTo(elapsed);
+
+        if (!gameOverTriggered && audioSource != null && audioSource.clip != null && !audioSource.isPlaying)
+        {
+            gameOverTriggered = true;
+            TriggerGameOver();
+        }
+
+        int totalJudged = ScoreManager.Hits + ScoreManager.Misses;
+        if (!gameOverTriggered && totalJudged > 0 && ScoreManager.GetAccuracyPercent() < 60f)
+        {
+            gameOverTriggered = true;
+            TriggerGameOver();
+        }
     }
 }
