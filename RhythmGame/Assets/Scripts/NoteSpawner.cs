@@ -25,7 +25,7 @@ public class NoteSpawner : MonoBehaviour
     void Update()
     {
         if (useMap)
-            return; // RhythmGameManager calls SpawnFromMapUpTo
+            return; 
         if (Time.time >= nextSpawnTime)
         {
             SpawnRandomNote();

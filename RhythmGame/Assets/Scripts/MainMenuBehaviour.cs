@@ -3,7 +3,7 @@ using UnityEngine.SceneManagement;
 
 public class MainMenuBehaviour : MonoBehaviour
 {
-    [Tooltip("Scene to load when Song Select is pressed (e.g. SampleScene or SongSelect).")]
+    [Tooltip("Scene to load when Song Select is pressed")]
     public string songSelectSceneName = "SampleScene";
 
     
@@ -11,7 +11,7 @@ public class MainMenuBehaviour : MonoBehaviour
     {
         if (string.IsNullOrEmpty(songSelectSceneName))
         {
-            Debug.LogWarning("MainMenuBehaviour: No scene name set for Song Select.");
+            Debug.LogWarning("No scene name set for Song Select.");
             return;
         }
         SceneManager.LoadScene(songSelectSceneName);

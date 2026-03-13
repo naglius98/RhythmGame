@@ -28,7 +28,7 @@ public class SongSelectBehaviour : MonoBehaviour
     {
         if (listContent == null || buttonPrefab == null)
         {
-            Debug.LogWarning("SongSelectBehaviour: Assign List Content and Button Prefab in the inspector.");
+            Debug.LogWarning("Assign List Content and Button Prefab in the inspector.");
             return;
         }
 
@@ -76,7 +76,7 @@ public class SongSelectBehaviour : MonoBehaviour
     {
         if (string.IsNullOrEmpty(mainMenuSceneName))
         {
-            Debug.LogWarning("SongSelectBehaviour: No main menu scene name set.");
+            Debug.LogWarning("No main menu scene name set.");
             return;
         }
         SceneManager.LoadScene(mainMenuSceneName);
@@ -87,13 +87,13 @@ public class SongSelectBehaviour : MonoBehaviour
     {
         if (string.IsNullOrEmpty(folderName))
         {
-            Debug.LogWarning("SongSelectBehaviour: No folder name passed.");
+            Debug.LogWarning("No folder name passed.");
             return;
         }
         SelectedSongFolder = folderName;
         if (string.IsNullOrEmpty(gameSceneName))
         {
-            Debug.LogWarning("SongSelectBehaviour: No game scene name set.");
+            Debug.LogWarning("No game scene name set.");
             return;
         }
         SceneManager.LoadScene(gameSceneName);

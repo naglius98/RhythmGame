@@ -35,7 +35,7 @@ public static class MapLoader
         string path = Path.Combine(GetSongPath(songFolderName), "Info.dat");
         if (!File.Exists(path))
         {
-            Debug.LogWarning($"MapLoader: Info.dat not found at {path}");
+            Debug.LogWarning($"Info.dat not found at {path}");
             return null;
         }
 
@@ -45,12 +45,12 @@ public static class MapLoader
             var info = JsonUtility.FromJson<InfoDat>(json);
             if (info != null && info._difficultyBeatmapSets != null && info._difficultyBeatmapSets.Length > 0)
                 return info;
-            Debug.LogWarning("MapLoader: Info.dat missing _difficultyBeatmapSets.");
+            Debug.LogWarning("Info.dat missing _difficultyBeatmapSets.");
             return info;
         }
         catch (Exception e)
         {
-            Debug.LogError($"MapLoader: Failed to parse Info.dat: {e.Message}");
+            Debug.LogError($"Failed to parse Info.dat: {e.Message}");
             return null;
         }
     }
@@ -61,7 +61,7 @@ public static class MapLoader
         string path = Path.Combine(GetSongPath(songFolderName), fileName);
         if (!File.Exists(path))
         {
-            Debug.LogWarning($"MapLoader: Difficulty file not found at {path}");
+            Debug.LogWarning($"Difficulty file not found at {path}");
             return null;
         }
 
@@ -72,7 +72,7 @@ public static class MapLoader
         }
         catch (Exception e)
         {
-            Debug.LogError($"MapLoader: Failed to parse difficulty file: {e.Message}");
+            Debug.LogError($"Failed to parse difficulty file: {e.Message}");
             return null;
         }
     }
@@ -83,7 +83,7 @@ public static class MapLoader
         string path = Path.Combine(GetSongPath(songFolderName), fileName);
         if (!File.Exists(path))
         {
-            Debug.LogWarning($"MapLoader: Difficulty file not found at {path}");
+            Debug.LogWarning($"Difficulty file not found at {path}");
             return new List<MapNoteSpawn>();
         }
 
@@ -100,7 +100,7 @@ public static class MapLoader
         }
         catch (Exception e)
         {
-            Debug.LogError($"MapLoader: Failed to parse difficulty file: {e.Message}");
+            Debug.LogError($"Failed to parse difficulty file: {e.Message}");
         }
 
         return new List<MapNoteSpawn>();
@@ -132,9 +132,8 @@ public static class MapLoader
         list.Sort((a, b) => a.spawnTime.CompareTo(b.spawnTime));
         return list;
     }
-
-    //
-    /// Build spawn list from v3 colorNotes (b=beat, x=line index)
+    
+    // Build spawn list from v3 colorNotes (b=beat, x=line index)
     public static List<MapNoteSpawn> BuildSpawnListFromV3(float bpm, float travelTimeSeconds, ColorNoteV3[] colorNotes)
     {
         var list = new List<MapNoteSpawn>();
