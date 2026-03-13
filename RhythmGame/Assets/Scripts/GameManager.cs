@@ -155,14 +155,15 @@ public class GameManager : MonoBehaviour
         float elapsed = Time.time - gameStartTime;
         noteSpawner.SpawnFromMapUpTo(elapsed);
 
-        if (!gameOverTriggered && audioSource != null && audioSource.clip != null && !audioSource.isPlaying)
+        // Need to check if the song is over and not paused
+        if (!gameOverTriggered && !PauseMenuBehaviour.IsPaused && audioSource != null && audioSource.clip != null && !audioSource.isPlaying)
         {
             gameOverTriggered = true;
             TriggerGameOver();
         }
 
         int totalJudged = ScoreManager.Hits + ScoreManager.Misses;
-        if (!gameOverTriggered && totalJudged > 0 && ScoreManager.GetAccuracyPercent() < 60f)
+        if (!gameOverTriggered && !PauseMenuBehaviour.IsPaused && totalJudged > 0 && ScoreManager.GetAccuracyPercent() < 60f)
         {
             gameOverTriggered = true;
             TriggerGameOver();

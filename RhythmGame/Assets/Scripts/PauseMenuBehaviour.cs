@@ -20,6 +20,7 @@ public class PauseMenuBehaviour : MonoBehaviour
 
     void Start()
     {
+        IsPaused = false;
         if (pausePanel != null)
             pausePanel.SetActive(false);
         if (countdownDisplay != null)
