@@ -8,6 +8,7 @@ CURRENT FEATURES:
 
 The features currently available to the player are the following: the ability to use the keyboard to hit notes, with visual feedback when pressing the button associated with a rail. If the note is missed, then it will disappear when hit outside the zone. If a note is hit within the hit zone, then the notes gets destroyed on impact. The notes are decided based on maps available to the player. Currently there is only one map available to be played.
 The score is decided through precision. The player starts at 100%, and any note missed will bring the score down.
+The game ends when the song is over or if the player hits under 60% accuracy.
 
 CONTROLS:
 
