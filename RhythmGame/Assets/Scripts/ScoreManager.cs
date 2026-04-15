@@ -124,7 +124,8 @@ public static class ScoreManager
         {
             return 100f;
         }
-        float w = perfects * 100f + greats * 80f + goods * 50f;
+        // Weights vs 100 = "perfect note". Good used to be 50 → all-Good runs capped at 50% and failed the 60% game-over rule
+        float w = perfects * 100f + greats * 94f + goods * 88f;
         return Mathf.Clamp01(w / (judged * 100f)) * 100f;
     }
 
