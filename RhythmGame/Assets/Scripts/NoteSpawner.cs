@@ -3,8 +3,20 @@ using UnityEngine;
 
 public class NoteSpawner : MonoBehaviour
 {
+    public static NoteSpawner Instance { get; private set; }
+
     public GameObject notePrefab;
+    public GameObject holdNotePrefab;
     public float[] railPositions = {-3f, -1f, 1f, 3f}; // X positions
+
+    [Tooltip("Index 0-3: left to right in the track")]
+    public Color[] railNoteColors =
+    {
+        new Color(0.95f, 0.35f, 0.35f),
+        new Color(0.35f, 0.75f, 0.95f),
+        new Color(0.45f, 0.95f, 0.45f),
+        new Color(0.95f, 0.85f, 0.35f)
+    };
     public float spawnHeight = 6f;
     [Tooltip("Y position of the hit zone center")]
     public float hitZoneY = 0f;
@@ -16,12 +28,34 @@ public class NoteSpawner : MonoBehaviour
     private int mapSpawnIndex;
     private bool useMap;
 
+    void Awake()
+    {
+        Instance = this;
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+    }
+
     void Start()
     {
         if (!useMap)
         {
             ScheduleNextSpawn();
         }
+    }
+
+    public Color GetRailNoteColor(int railIndex)
+    {
+        if (railNoteColors == null || railNoteColors.Length == 0)
+        {
+            return Color.white;
+        }
+        return railNoteColors[Mathf.Clamp(railIndex, 0, railNoteColors.Length - 1)];
     }
 
     void Update()
@@ -41,10 +75,21 @@ public class NoteSpawner : MonoBehaviour
     public float GetTravelTimeSeconds()
     {
         float speed = 5f;
-        var note = notePrefab != null ? notePrefab.GetComponent<Note>() : null;
-        if (note != null)
+        if (notePrefab != null)
         {
-            speed = note.speed;
+            var n = notePrefab.GetComponent<Note>();
+            if (n != null)
+            {
+                speed = n.speed;
+            }
+        }
+        else if (holdNotePrefab != null)
+        {
+            var h = holdNotePrefab.GetComponent<HoldNote>();
+            if (h != null)
+            {
+                speed = h.speed;
+            }
         }
         float distance = spawnHeight - hitZoneY;
         return distance > 0 && speed > 0 ? distance / speed : 1f;
@@ -69,14 +114,39 @@ public class NoteSpawner : MonoBehaviour
         {
             return;
         }
-        float travel = GetTravelTimeSeconds();
         while (mapSpawnIndex < mapSpawns.Count && mapSpawns[mapSpawnIndex].spawnTime <= gameTime)
         {
             var s = mapSpawns[mapSpawnIndex];
-            float idealHit = s.spawnTime + travel;
-            SpawnNoteOnRail(s.railIndex, idealHit);
+            if (s.kind == NoteKind.Hold && s.IsHold)
+            {
+                SpawnHoldOnRail(s.railIndex, s.idealHeadElapsed, s.idealTailElapsed);
+            }
+            else
+            {
+                SpawnNoteOnRail(s.railIndex, s.idealHeadElapsed);
+            }
             mapSpawnIndex++;
         }
+    }
+
+    void SpawnHoldOnRail(int railIndex, float idealHeadElapsed, float idealTailElapsed)
+    {
+        if (holdNotePrefab == null)
+        {
+            Debug.LogError("Map has hold notes but holdNotePrefab is not assigned.");
+            return;
+        }
+        railIndex = Mathf.Clamp(railIndex, 0, railPositions.Length - 1);
+        Vector3 spawnPos = new Vector3(railPositions[railIndex], spawnHeight, 0);
+        GameObject go = Instantiate(holdNotePrefab, spawnPos, Quaternion.identity);
+        HoldNote hold = go.GetComponent<HoldNote>();
+        if (hold == null)
+        {
+            Debug.LogError("holdNotePrefab must have a HoldNote component.");
+            Destroy(go);
+            return;
+        }
+        hold.InitializeHold(railIndex, idealHeadElapsed, idealTailElapsed);
     }
 
     void SpawnNoteOnRail(int railIndex, float idealHitElapsed)

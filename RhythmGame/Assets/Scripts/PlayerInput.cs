@@ -11,6 +11,9 @@ public class PlayerInput : MonoBehaviour
     // Track all active notes per rail
     private List<Note>[] notesPerRail = new List<Note>[4];
 
+    // Hold in progress per rail 
+    readonly HoldNote[] activeHoldByRail = new HoldNote[4];
+
     void Awake()
     {
         gameManager = FindObjectOfType<GameManager>();
@@ -22,39 +25,121 @@ public class PlayerInput : MonoBehaviour
             notesPerRail[i] = new List<Note>();
     }
 
+    float GetMapElapsed()
+    {
+        return gameManager != null && gameManager.MapClockRunning
+            ? gameManager.GetMapElapsedSeconds()
+            : Time.time;
+    }
+
     void Update()
     {
         if (PauseMenuBehaviour.IsPaused)
         {
             return;
         }
-        if (Keyboard.current.dKey.wasPressedThisFrame) 
+
+        ProcessActiveHolds();
+
+        if (Keyboard.current == null)
+        {
+            return;
+        }
+
+        if (Keyboard.current.dKey.wasPressedThisFrame)
         {
             CheckHit(0);
         }
-        if (Keyboard.current.fKey.wasPressedThisFrame) 
+        if (Keyboard.current.fKey.wasPressedThisFrame)
         {
             CheckHit(1);
         }
-        if (Keyboard.current.jKey.wasPressedThisFrame) 
+        if (Keyboard.current.jKey.wasPressedThisFrame)
         {
             CheckHit(2);
         }
-        if (Keyboard.current.kKey.wasPressedThisFrame) 
+        if (Keyboard.current.kKey.wasPressedThisFrame)
         {
             CheckHit(3);
         }
 
-        // Quit 
         if (Keyboard.current.qKey.wasPressedThisFrame)
         {
             QuitGame();
         }
     }
 
+    static float TailWindowSeconds => ScoreManager.GoodWindowMs / 1000f;
+
+    void ProcessActiveHolds()
+    {
+        if (Keyboard.current == null)
+        {
+            return;
+        }
+
+        for (int rail = 0; rail < 4; rail++)
+        {
+            HoldNote h = activeHoldByRail[rail];
+            if (h == null)
+            {
+                continue;
+            }
+
+            float elapsed = GetMapElapsed();
+
+            if (WasReleasedThisFrame(rail))
+            {
+                float tailErr = elapsed - h.idealTailElapsed;
+                if (elapsed < h.idealTailElapsed - TailWindowSeconds)
+                {
+                    ScoreManager.RecordMiss($"(hold early release) rail{rail}");
+                }
+                else
+                {
+                    ScoreManager.RecordTimedHit(tailErr, rail);
+                }
+                ClearActiveHold(rail, h);
+                continue;
+            }
+
+            if (elapsed > h.idealTailElapsed + TailWindowSeconds)
+            {
+                ScoreManager.RecordMiss($"(hold late tail) rail{rail}");
+                ClearActiveHold(rail, h);
+            }
+        }
+    }
+
+    static bool WasReleasedThisFrame(int rail)
+    {
+        switch (rail)
+        {
+            case 0: return Keyboard.current.dKey.wasReleasedThisFrame;
+            case 1: return Keyboard.current.fKey.wasReleasedThisFrame;
+            case 2: return Keyboard.current.jKey.wasReleasedThisFrame;
+            case 3: return Keyboard.current.kKey.wasReleasedThisFrame;
+            default: return false;
+        }
+    }
+
+    void ClearActiveHold(int rail, HoldNote h)
+    {
+        activeHoldByRail[rail] = null;
+        RemoveNote(h);
+        if (h != null)
+        {
+            Destroy(h.gameObject);
+        }
+    }
+
     void CheckHit(int railIndex)
     {
-        // Pulse effect for visual feedback
+        if (activeHoldByRail[railIndex] != null)
+        {
+            return;
+        }
+
         if (hitZones[railIndex] != null)
         {
             HitZonePulse pulse = hitZones[railIndex].GetComponent<HitZonePulse>();
@@ -64,52 +149,57 @@ public class PlayerInput : MonoBehaviour
             }
         }
 
-        // Check for notes in the zone
         HitZone zone = hitZones[railIndex].GetComponent<HitZone>();
-        if (zone != null)
+        if (zone == null)
         {
-            Note hitNote = zone.GetClosestNote();
-            
-            if (hitNote != null)
+            return;
+        }
+
+        float elapsed = GetMapElapsed();
+
+        Note hitNote = zone.GetClosestNote();
+        if (hitNote is HoldNote hn && hn.Phase == HoldNote.HoldPhase.Pending)
+        {
+            if (hn.TryStartHead(elapsed))
             {
-                float elapsed = gameManager != null && gameManager.MapClockRunning
-                    ? gameManager.GetMapElapsedSeconds()
-                    : Time.time;
-                float errorSec = elapsed - hitNote.idealHitElapsed;
+                float errorSec = elapsed - hn.idealHitElapsed;
                 ScoreManager.RecordTimedHit(errorSec, railIndex);
-                RemoveNote(hitNote);
-                Destroy(hitNote.gameObject);
+                activeHoldByRail[railIndex] = hn;
             }
-            else // No note in hit zone
-            { 
-                Note earliestNote = GetEarliestNoteOnRail(railIndex);
-                if (earliestNote != null)
-                {
-                    ScoreManager.RecordMiss($"(early destroy) rail{railIndex}");
-                    RemoveNote(earliestNote);
-                    Destroy(earliestNote.gameObject);
-                }
-                else // No note in rail at all
-                {
-                    // Do nothing
-                }
+            return;
+        }
+
+        if (hitNote != null)
+        {
+            float errorSec = elapsed - hitNote.idealHitElapsed;
+            ScoreManager.RecordTimedHit(errorSec, railIndex);
+            RemoveNote(hitNote);
+            Destroy(hitNote.gameObject);
+        }
+        else
+        {
+            Note earliestNote = GetEarliestNoteOnRail(railIndex);
+            if (earliestNote != null)
+            {
+                ScoreManager.RecordMiss($"(early destroy) rail{railIndex}");
+                RemoveNote(earliestNote);
+                Destroy(earliestNote.gameObject);
             }
         }
     }
-    
+
     Note GetEarliestNoteOnRail(int railIndex)
     {
-        // Clean up null references
         notesPerRail[railIndex].RemoveAll(note => note == null);
 
-        if (notesPerRail[railIndex].Count == 0) 
+        if (notesPerRail[railIndex].Count == 0)
         {
             return null;
         }
-        
+
         Note earliest = null;
         float lowestY = float.MaxValue;
-        
+
         foreach (Note note in notesPerRail[railIndex])
         {
             if (note.transform.position.y < lowestY)
@@ -118,11 +208,10 @@ public class PlayerInput : MonoBehaviour
                 earliest = note;
             }
         }
-        
+
         return earliest;
     }
-    
-    // Add the note to the list
+
     public void RegisterNote(Note note)
     {
         if (note.railIndex >= 0 && note.railIndex < 4)
@@ -130,8 +219,18 @@ public class PlayerInput : MonoBehaviour
             notesPerRail[note.railIndex].Add(note);
         }
     }
-    
-    // Destroy the note and remove it from the list
+
+    public void NotifyHoldDestroyed(HoldNote hold)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            if (activeHoldByRail[i] == hold)
+            {
+                activeHoldByRail[i] = null;
+            }
+        }
+    }
+
     void RemoveNote(Note note)
     {
         if (note.railIndex >= 0 && note.railIndex < 4)
@@ -140,13 +239,12 @@ public class PlayerInput : MonoBehaviour
         }
     }
 
-       void QuitGame()
+    void QuitGame()
     {
-        #if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-        #else
-            Application.Quit();
-        #endif
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
     }
 }
-

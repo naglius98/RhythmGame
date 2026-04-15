@@ -58,6 +58,19 @@ public class DifficultyDatV3
 {
     public string version;
     public ColorNoteV3[] colorNotes;
+    public BurstSliderV3[] burstSliders; // Chain / burst sliders:head beat b, tail beat tb
+}
+
+// Beat Saber v3 burst slider (chain)
+[Serializable]
+public class BurstSliderV3
+{
+    public float b;   // head beatb
+    public float tb;  // tail beat
+    public int x;     // head line index
+    public int y;     // head layer
+    public int tx;    // tail line indexx
+    public int ty;    // tail layery
 }
 
 [Serializable]
@@ -71,10 +84,36 @@ public class ColorNoteV3
     public int a;    // angle offset
 }
 
-// One spawn to perform at a given time
+public enum NoteKind
+{
+    Tap,
+    Hold
+}
+
+// One spawn to perform at a given time (map clock = seconds since chart start, same as GameManager map elapsed)
 [Serializable]
 public struct MapNoteSpawn
 {
-    public float spawnTime;
+    public NoteKind kind;
+    public float idealHeadElapsed; // Map elapsed time the note head should cross the hit line
+    public float spawnTime; // When to spawn the head 
     public int railIndex;
+    public float idealTailElapsed; // For Hold: map elapsed when the tail crosses the line
+
+    public bool IsHold => kind == NoteKind.Hold && idealTailElapsed > idealHeadElapsed;
+}
+
+// Holds sidecar file
+[Serializable]
+public class HoldsSidecarFile
+{
+    public HoldSidecarEntry[] holds;
+}
+
+[Serializable]
+public class HoldSidecarEntry
+{
+    public int rail;
+    public float headBeat;
+    public float tailBeat;
 }

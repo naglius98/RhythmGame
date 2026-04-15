@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Note : MonoBehaviour
 {
@@ -8,7 +9,7 @@ public class Note : MonoBehaviour
     // Timeline seconds when this note should be hit
     public float idealHitElapsed;
 
-    void Update()
+    protected virtual void Update()
     {
         transform.Translate(Vector3.down * speed * Time.deltaTime);
 
@@ -23,11 +24,30 @@ public class Note : MonoBehaviour
     {
         railIndex = rail;
         idealHitElapsed = idealHitElapsedSeconds;
+        ApplyRailColor();
 
         PlayerInput playerInput = FindObjectOfType<PlayerInput>();
         if (playerInput != null)
         {
             playerInput.RegisterNote(this);
+        }
+    }
+
+    protected void ApplyRailColor()
+    {
+        NoteSpawner spawner = NoteSpawner.Instance;
+        if (spawner == null)
+        {
+            return;
+        }
+        Color c = spawner.GetRailNoteColor(railIndex);
+        foreach (SpriteRenderer sr in GetComponentsInChildren<SpriteRenderer>(true))
+        {
+            sr.color = c;
+        }
+        foreach (Graphic g in GetComponentsInChildren<Graphic>(true))
+        {
+            g.color = c;
         }
     }
 }

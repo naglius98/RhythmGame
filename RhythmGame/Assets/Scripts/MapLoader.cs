@@ -8,8 +8,15 @@ using UnityEngine;
 public static class MapLoader
 {
     const string MapsFolder = "Maps";
+    const string HoldsSidecarFilename = "holds.json";
 
-    /// Full path to a song folder 
+    // Minimum beat span (tb − b) for a burst slider to become a hold
+    public const float MinHoldBeatSpan = 0.0625f;
+
+    // Tap within this many seconds of a hold head is dropped 
+    public const float HeadConflictEpsilonSeconds = 0.05f;
+
+    // Full path to a song folder 
     public static string GetSongPath(string songFolderName)
     {
         return Path.Combine(Application.streamingAssetsPath, MapsFolder, songFolderName);
@@ -97,13 +104,29 @@ public static class MapLoader
             var v2 = JsonUtility.FromJson<DifficultyDat>(json);
             if (v2 != null && v2._notes != null && v2._notes.Length > 0)
             {
-                return BuildSpawnList(bpm, travelTimeSeconds, v2);
+                List<MapNoteSpawn> taps = BuildSpawnList(bpm, travelTimeSeconds, v2);
+                List<MapNoteSpawn> sidecar = LoadHoldsSidecar(songFolderName, bpm, travelTimeSeconds);
+                return ReturnWithHoldLog(MergeTapsAndHolds(taps, sidecar, null), 0);
             }
 
             var v3 = JsonUtility.FromJson<DifficultyDatV3>(json);
-            if (v3 != null && v3.colorNotes != null && v3.colorNotes.Length > 0)
+            if (v3 != null)
             {
-                return BuildSpawnListFromV3(bpm, travelTimeSeconds, v3.colorNotes);
+                // JsonUtility often fails to fill burstSliders on large v3 charts; merge with raw-array parse.
+                BurstSliderV3[] burstSliders = CoalesceBurstSliders(v3.burstSliders, json);
+                bool hasColor = v3.colorNotes != null && v3.colorNotes.Length > 0;
+                bool hasBurst = burstSliders != null && burstSliders.Length > 0;
+                if (hasColor || hasBurst)
+                {
+                    List<MapNoteSpawn> taps = hasColor
+                        ? BuildSpawnListFromV3(bpm, travelTimeSeconds, v3.colorNotes)
+                        : new List<MapNoteSpawn>();
+                    List<MapNoteSpawn> burstHolds = hasBurst
+                        ? BuildHoldsFromBurstSliders(bpm, travelTimeSeconds, burstSliders)
+                        : new List<MapNoteSpawn>();
+                    List<MapNoteSpawn> sidecar = LoadHoldsSidecar(songFolderName, bpm, travelTimeSeconds);
+                    return ReturnWithHoldLog(MergeTapsAndHolds(taps, sidecar, burstHolds), burstSliders?.Length ?? 0);
+                }
             }
         }
         catch (Exception e)
@@ -112,6 +135,93 @@ public static class MapLoader
         }
 
         return new List<MapNoteSpawn>();
+    }
+
+    static List<MapNoteSpawn> ReturnWithHoldLog(List<MapNoteSpawn> list, int burstSlidersParsed = 0)
+    {
+        if (list != null)
+        {
+            int hc = 0;
+            foreach (MapNoteSpawn s in list)
+            {
+                if (s.kind == NoteKind.Hold && s.IsHold)
+                {
+                    hc++;
+                }
+            }
+            Debug.Log($"[MapLoader] Hold notes in spawn list: {hc} (burst slider objects parsed from file: {burstSlidersParsed}).");
+        }
+        return list;
+    }
+
+    // Fall back to extracting the JSON array by bracket matching
+    static BurstSliderV3[] CoalesceBurstSliders(BurstSliderV3[] fromUtility, string rawJson)
+    {
+        if (fromUtility != null && fromUtility.Length > 0)
+        {
+            return fromUtility;
+        }
+        BurstSliderV3[] extracted = TryExtractBurstSlidersArray(rawJson);
+        return extracted != null ? extracted : Array.Empty<BurstSliderV3>();
+    }
+
+    [Serializable]
+    class BurstSliderJsonArray
+    {
+        public BurstSliderV3[] items;
+    }
+
+    static BurstSliderV3[] TryExtractBurstSlidersArray(string json)
+    {
+        int keyIdx = json.IndexOf("\"burstSliders\"", StringComparison.Ordinal);
+        if (keyIdx < 0)
+        {
+            return null;
+        }
+        int lb = json.IndexOf('[', keyIdx);
+        if (lb < 0)
+        {
+            return null;
+        }
+        int depth = 0;
+        int end = -1;
+        for (int i = lb; i < json.Length; i++)
+        {
+            char c = json[i];
+            if (c == '[')
+            {
+                depth++;
+            }
+            else if (c == ']')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    end = i;
+                    break;
+                }
+            }
+        }
+        if (end < 0)
+        {
+            return null;
+        }
+        string arrayJson = json.Substring(lb, end - lb + 1);
+        if (arrayJson == "[]")
+        {
+            return Array.Empty<BurstSliderV3>();
+        }
+        string wrapped = "{\"items\":" + arrayJson + "}";
+        try
+        {
+            BurstSliderJsonArray w = JsonUtility.FromJson<BurstSliderJsonArray>(wrapped);
+            return w != null && w.items != null ? w.items : Array.Empty<BurstSliderV3>();
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[MapLoader] Could not parse burstSliders array: {e.Message}");
+            return null;
+        }
     }
 
     const int BombType = 3;
@@ -138,7 +248,14 @@ public static class MapLoader
             float hitTimeSeconds = n._time * secondsPerBeat;
             float spawnTime = hitTimeSeconds - travelTimeSeconds;
 
-            list.Add(new MapNoteSpawn { spawnTime = spawnTime, railIndex = rail });
+            list.Add(new MapNoteSpawn
+            {
+                kind = NoteKind.Tap,
+                idealHeadElapsed = hitTimeSeconds,
+                spawnTime = spawnTime,
+                railIndex = rail,
+                idealTailElapsed = 0f
+            });
         }
 
         list.Sort((a, b) => a.spawnTime.CompareTo(b.spawnTime));
@@ -161,14 +278,228 @@ public static class MapLoader
             int rail = Mathf.Clamp(n.x, 0, 3);
             float hitTimeSeconds = n.b * secondsPerBeat;
             float spawnTime = hitTimeSeconds - travelTimeSeconds;
-            list.Add(new MapNoteSpawn { spawnTime = spawnTime, railIndex = rail });
+            list.Add(new MapNoteSpawn
+            {
+                kind = NoteKind.Tap,
+                idealHeadElapsed = hitTimeSeconds,
+                spawnTime = spawnTime,
+                railIndex = rail,
+                idealTailElapsed = 0f
+            });
         }
 
         list.Sort((a, b) => a.spawnTime.CompareTo(b.spawnTime));
         return list;
     }
 
+    static List<MapNoteSpawn> BuildHoldsFromBurstSliders(float bpm, float travelTimeSeconds, BurstSliderV3[] sliders)
+    {
+        var list = new List<MapNoteSpawn>();
+        if (sliders == null || sliders.Length == 0)
+        {
+            return list;
+        }
+
+        float secondsPerBeat = 60f / bpm;
+
+        foreach (BurstSliderV3 s in sliders)
+        {
+            if (s.tb <= s.b + MinHoldBeatSpan - 0.0001f)
+            {
+                continue;
+            }
+
+            int rail = Mathf.Clamp(s.x, 0, 3);
+            float headSec = s.b * secondsPerBeat;
+            float tailSec = s.tb * secondsPerBeat;
+            if (tailSec <= headSec)
+            {
+                continue;
+            }
+
+            float spawnTime = headSec - travelTimeSeconds;
+            list.Add(new MapNoteSpawn
+            {
+                kind = NoteKind.Hold,
+                idealHeadElapsed = headSec,
+                idealTailElapsed = tailSec,
+                spawnTime = spawnTime,
+                railIndex = rail
+            });
+        }
+
+        list.Sort((a, b) => a.spawnTime.CompareTo(b.spawnTime));
+        return list;
+    }
+
+    static List<MapNoteSpawn> LoadHoldsSidecar(string songFolderName, float bpm, float travelTimeSeconds)
+    {
+        var list = new List<MapNoteSpawn>();
+        string path = Path.Combine(GetSongPath(songFolderName), HoldsSidecarFilename);
+        if (!File.Exists(path))
+        {
+            return list;
+        }
+
+        try
+        {
+            string json = File.ReadAllText(path);
+            var data = JsonUtility.FromJson<HoldsSidecarFile>(json);
+            if (data == null || data.holds == null || data.holds.Length == 0)
+            {
+                return list;
+            }
+
+            float secondsPerBeat = 60f / bpm;
+
+            foreach (HoldSidecarEntry e in data.holds)
+            {
+                if (e == null || e.tailBeat <= e.headBeat + MinHoldBeatSpan - 0.0001f)
+                {
+                    continue;
+                }
+
+                int rail = Mathf.Clamp(e.rail, 0, 3);
+                float headSec = e.headBeat * secondsPerBeat;
+                float tailSec = e.tailBeat * secondsPerBeat;
+                if (tailSec <= headSec)
+                {
+                    continue;
+                }
+
+                float spawnTime = headSec - travelTimeSeconds;
+                list.Add(new MapNoteSpawn
+                {
+                    kind = NoteKind.Hold,
+                    idealHeadElapsed = headSec,
+                    idealTailElapsed = tailSec,
+                    spawnTime = spawnTime,
+                    railIndex = rail
+                });
+            }
+
+            list.Sort((a, b) => a.spawnTime.CompareTo(b.spawnTime));
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to load holds.json: {e.Message}");
+        }
+
+        return list;
+    }
+
     
+    // Sidecar holds first
+    // Burst holds are not duplicates
+    // Taps whose head conflicts with any hold head on the same rail are removed
+    static List<MapNoteSpawn> MergeTapsAndHolds(
+        List<MapNoteSpawn> taps,
+        List<MapNoteSpawn> sidecarHolds,
+        List<MapNoteSpawn> burstHolds)
+    {
+        var holds = new List<MapNoteSpawn>();
+        if (sidecarHolds != null)
+        {
+            foreach (MapNoteSpawn h in sidecarHolds)
+            {
+                holds.Add(h);
+            }
+        }
+
+        if (burstHolds != null)
+        {
+            foreach (MapNoteSpawn h in burstHolds)
+            {
+                if (HoldDuplicateOfAny(h, holds))
+                {
+                    continue;
+                }
+                holds.Add(h);
+            }
+        }
+
+        var filteredTaps = new List<MapNoteSpawn>(taps != null ? taps.Count : 0);
+        if (taps != null)
+        {
+            foreach (MapNoteSpawn t in taps)
+            {
+                if (t.kind != NoteKind.Tap)
+                {
+                    filteredTaps.Add(t);
+                    continue;
+                }
+
+                if (TapConflictsWithHoldHead(t, holds))
+                {
+                    continue;
+                }
+
+                filteredTaps.Add(t);
+            }
+        }
+
+        var merged = new List<MapNoteSpawn>(holds.Count + filteredTaps.Count);
+        foreach (MapNoteSpawn h in holds)
+        {
+            merged.Add(h);
+        }
+
+        foreach (MapNoteSpawn t in filteredTaps)
+        {
+            merged.Add(t);
+        }
+
+        merged.Sort((a, b) => a.spawnTime.CompareTo(b.spawnTime));
+        return merged;
+    }
+
+    /// True if a hold with the same rail and head time already exists
+    static bool HoldDuplicateOfAny(MapNoteSpawn candidate, List<MapNoteSpawn> existing)
+    {
+        foreach (MapNoteSpawn h in existing)
+        {
+            if (h.kind != NoteKind.Hold)
+            {
+                continue;
+            }
+
+            if (h.railIndex != candidate.railIndex)
+            {
+                continue;
+            }
+
+            if (Mathf.Abs(h.idealHeadElapsed - candidate.idealHeadElapsed) < HeadConflictEpsilonSeconds)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    static bool TapConflictsWithHoldHead(MapNoteSpawn tap, List<MapNoteSpawn> holds)
+    {
+        foreach (MapNoteSpawn h in holds)
+        {
+            if (h.kind != NoteKind.Hold || !h.IsHold)
+            {
+                continue;
+            }
+
+            if (h.railIndex != tap.railIndex)
+            {
+                continue;
+            }
+
+            if (Mathf.Abs(h.idealHeadElapsed - tap.idealHeadElapsed) < HeadConflictEpsilonSeconds)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // Get the first difficulty beatmap filename 
     public static string GetFirstDifficultyFilename(InfoDat info, string preferredDifficulty = "Normal")
     {
