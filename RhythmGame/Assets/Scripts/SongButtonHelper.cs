@@ -11,8 +11,12 @@ public class SongButtonHelper : MonoBehaviour
     {
         var songSelect = FindObjectOfType<SongSelectBehaviour>();
         if (songSelect != null)
+        {
             songSelect.OnSongSelected(folderName);
+        }
         else
+        {
             Debug.LogWarning("SongButtonHelper: No SongSelectBehaviour in scene.");
+        }
     }
 }

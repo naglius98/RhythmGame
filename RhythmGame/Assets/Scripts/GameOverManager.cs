@@ -15,7 +15,12 @@ public class GameOverManager : MonoBehaviour
     void Start()
     {
         if (precisionText != null)
-            precisionText.text = "FINAL SCORE: " + ScoreManager.GetAccuracyPercent().ToString("F1") + "%";
+        {
+            precisionText.text =
+                "FINAL SCORE: " + ScoreManager.Score +
+                "\nTiming: " + ScoreManager.GetAccuracyPercent().ToString("F1") + "%" +
+                "\nMax combo: " + ScoreManager.MaxCombo;
+        }
     }
 
     public void OnRestart()

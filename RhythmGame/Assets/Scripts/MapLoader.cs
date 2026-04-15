@@ -20,7 +20,9 @@ public static class MapLoader
     {
         string mapsPath = Path.Combine(Application.streamingAssetsPath, MapsFolder);
         if (!Directory.Exists(mapsPath))
+        {
             return Array.Empty<string>();
+        }
 
         string[] dirs = Directory.GetDirectories(mapsPath);
         var names = new string[dirs.Length];
@@ -44,7 +46,9 @@ public static class MapLoader
             string json = File.ReadAllText(path);
             var info = JsonUtility.FromJson<InfoDat>(json);
             if (info != null && info._difficultyBeatmapSets != null && info._difficultyBeatmapSets.Length > 0)
+            {
                 return info;
+            }
             Debug.LogWarning("Info.dat missing _difficultyBeatmapSets.");
             return info;
         }
@@ -92,11 +96,15 @@ public static class MapLoader
             string json = File.ReadAllText(path);
             var v2 = JsonUtility.FromJson<DifficultyDat>(json);
             if (v2 != null && v2._notes != null && v2._notes.Length > 0)
+            {
                 return BuildSpawnList(bpm, travelTimeSeconds, v2);
+            }
 
             var v3 = JsonUtility.FromJson<DifficultyDatV3>(json);
             if (v3 != null && v3.colorNotes != null && v3.colorNotes.Length > 0)
+            {
                 return BuildSpawnListFromV3(bpm, travelTimeSeconds, v3.colorNotes);
+            }
         }
         catch (Exception e)
         {
@@ -113,14 +121,18 @@ public static class MapLoader
     {
         var list = new List<MapNoteSpawn>();
         if (difficulty == null || difficulty._notes == null)
+        {
             return list;
+        }
 
         float secondsPerBeat = 60f / bpm;
 
         foreach (NoteData n in difficulty._notes)
         {
             if (n._type == BombType)
+            {
                 continue;
+            }
 
             int rail = Mathf.Clamp(n._lineIndex, 0, 3);
             float hitTimeSeconds = n._time * secondsPerBeat;
@@ -138,7 +150,9 @@ public static class MapLoader
     {
         var list = new List<MapNoteSpawn>();
         if (colorNotes == null || colorNotes.Length == 0)
+        {
             return list;
+        }
 
         float secondsPerBeat = 60f / bpm;
 
@@ -159,17 +173,23 @@ public static class MapLoader
     public static string GetFirstDifficultyFilename(InfoDat info, string preferredDifficulty = "Normal")
     {
         if (info?._difficultyBeatmapSets == null || info._difficultyBeatmapSets.Length == 0)
+        {
             return null;
+        }
 
         foreach (var set in info._difficultyBeatmapSets)
         {
             if (set._difficultyBeatmaps == null || set._difficultyBeatmaps.Length == 0)
+            {
                 continue;
+            }
 
             foreach (var d in set._difficultyBeatmaps)
             {
                 if (string.Equals(d._difficulty, preferredDifficulty, StringComparison.OrdinalIgnoreCase))
+                {
                     return d._beatmapFilename;
+                }
             }
 
             return set._difficultyBeatmaps[0]._beatmapFilename;

@@ -2,14 +2,18 @@ using UnityEngine;
 
 public class ScoreDisplay : MonoBehaviour
 {
-    [Tooltip("TMP_Text to show accuracy.")]
+    [Tooltip("TMP_Text to show score, combo, and timing accuracy.")]
     public TMPro.TMP_Text tmpText;
 
     void Update()
     {
         if (tmpText == null)
+        {
             return;
-        float accuracy = ScoreManager.GetAccuracyPercent();
-        tmpText.text = accuracy.ToString("F1") + "%";
+        }
+        long sc = ScoreManager.Score;
+        int cb = ScoreManager.Combo;
+        float acc = ScoreManager.GetAccuracyPercent();
+        tmpText.text = $"Score {sc}  |  x{cb}  |  {acc:F1}%";
     }
 }

@@ -19,13 +19,17 @@ public class NoteSpawner : MonoBehaviour
     void Start()
     {
         if (!useMap)
+        {
             ScheduleNextSpawn();
+        }
     }
 
     void Update()
     {
         if (useMap)
-            return; 
+        {
+            return;
+        }
         if (Time.time >= nextSpawnTime)
         {
             SpawnRandomNote();
@@ -39,7 +43,9 @@ public class NoteSpawner : MonoBehaviour
         float speed = 5f;
         var note = notePrefab != null ? notePrefab.GetComponent<Note>() : null;
         if (note != null)
+        {
             speed = note.speed;
+        }
         float distance = spawnHeight - hitZoneY;
         return distance > 0 && speed > 0 ? distance / speed : 1f;
     }
@@ -60,27 +66,34 @@ public class NoteSpawner : MonoBehaviour
     public void SpawnFromMapUpTo(float gameTime)
     {
         if (mapSpawns == null || notePrefab == null)
+        {
             return;
+        }
+        float travel = GetTravelTimeSeconds();
         while (mapSpawnIndex < mapSpawns.Count && mapSpawns[mapSpawnIndex].spawnTime <= gameTime)
         {
             var s = mapSpawns[mapSpawnIndex];
-            SpawnNoteOnRail(s.railIndex);
+            float idealHit = s.spawnTime + travel;
+            SpawnNoteOnRail(s.railIndex, idealHit);
             mapSpawnIndex++;
         }
     }
 
-    void SpawnNoteOnRail(int railIndex)
+    void SpawnNoteOnRail(int railIndex, float idealHitElapsed)
     {
         railIndex = Mathf.Clamp(railIndex, 0, railPositions.Length - 1);
         Vector3 spawnPos = new Vector3(railPositions[railIndex], spawnHeight, 0);
         GameObject note = Instantiate(notePrefab, spawnPos, Quaternion.identity);
-        note.GetComponent<Note>().Initialize(railIndex);
+        note.GetComponent<Note>().Initialize(railIndex, idealHitElapsed);
     }
 
     void SpawnRandomNote()
     {
         int randomRail = Random.Range(0, 4);
-        SpawnNoteOnRail(randomRail);
+        var gm = FindObjectOfType<GameManager>();
+        float elapsed = gm != null && gm.MapClockRunning ? gm.GetMapElapsedSeconds() : Time.time;
+        float ideal = elapsed + GetTravelTimeSeconds();
+        SpawnNoteOnRail(randomRail, ideal);
     }
 
     void ScheduleNextSpawn()

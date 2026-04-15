@@ -5,23 +5,29 @@ using System.Collections.Generic;
 public class PlayerInput : MonoBehaviour
 {
     public GameObject[] hitZones; // List of hit zones
-    
+
+    GameManager gameManager;
+
     // Track all active notes per rail
     private List<Note>[] notesPerRail = new List<Note>[4];
-    
+
+    void Awake()
+    {
+        gameManager = FindObjectOfType<GameManager>();
+    }
+
     void Start()
     {
-        // Initialize the lists
         for (int i = 0; i < 4; i++)
-        {
             notesPerRail[i] = new List<Note>();
-        }
     }
 
     void Update()
     {
         if (PauseMenuBehaviour.IsPaused)
+        {
             return;
+        }
         if (Keyboard.current.dKey.wasPressedThisFrame) 
         {
             CheckHit(0);
@@ -48,8 +54,6 @@ public class PlayerInput : MonoBehaviour
 
     void CheckHit(int railIndex)
     {
-        Debug.Log($"Rail {railIndex} pressed!");
-
         // Pulse effect for visual feedback
         if (hitZones[railIndex] != null)
         {
@@ -68,8 +72,11 @@ public class PlayerInput : MonoBehaviour
             
             if (hitNote != null)
             {
-                Debug.Log($"HIT! Rail {railIndex}");
-                ScoreManager.RecordHit();
+                float elapsed = gameManager != null && gameManager.MapClockRunning
+                    ? gameManager.GetMapElapsedSeconds()
+                    : Time.time;
+                float errorSec = elapsed - hitNote.idealHitElapsed;
+                ScoreManager.RecordTimedHit(errorSec, railIndex);
                 RemoveNote(hitNote);
                 Destroy(hitNote.gameObject);
             }
@@ -78,8 +85,7 @@ public class PlayerInput : MonoBehaviour
                 Note earliestNote = GetEarliestNoteOnRail(railIndex);
                 if (earliestNote != null)
                 {
-                    Debug.Log($"TOO EARLY! Destroyed note on rail {railIndex}");
-                    ScoreManager.RecordMiss();
+                    ScoreManager.RecordMiss($"(early destroy) rail{railIndex}");
                     RemoveNote(earliestNote);
                     Destroy(earliestNote.gameObject);
                 }
@@ -95,9 +101,7 @@ public class PlayerInput : MonoBehaviour
     {
         // Clean up null references
         notesPerRail[railIndex].RemoveAll(note => note == null);
-        Debug.Log($"Checking rail {railIndex}, found {notesPerRail[railIndex].Count} notes");
-    
-        
+
         if (notesPerRail[railIndex].Count == 0) 
         {
             return null;
@@ -108,7 +112,6 @@ public class PlayerInput : MonoBehaviour
         
         foreach (Note note in notesPerRail[railIndex])
         {
-             Debug.Log($"Note on rail {railIndex} has railIndex={note.railIndex}, position y={note.transform.position.y}");
             if (note.transform.position.y < lowestY)
             {
                 lowestY = note.transform.position.y;

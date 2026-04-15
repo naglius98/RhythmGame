@@ -3,30 +3,31 @@ using UnityEngine;
 public class Note : MonoBehaviour
 {
     public float speed = 5f;
-    public int railIndex; // Which rail the note is on
-    
+    public int railIndex;
+
+    // Timeline seconds when this note should be hit
+    public float idealHitElapsed;
+
     void Update()
     {
-        // Move the note down
         transform.Translate(Vector3.down * speed * Time.deltaTime);
-        
+
         if (transform.position.y < -6f)
         {
-            ScoreManager.RecordMiss();
+            ScoreManager.RecordMiss($"(passed line) rail{railIndex}");
             Destroy(gameObject);
         }
     }
-    
-    public void Initialize(int rail)
+
+    public void Initialize(int rail, float idealHitElapsedSeconds)
     {
         railIndex = rail;
-        
-        // Register after setting the rail index
+        idealHitElapsed = idealHitElapsedSeconds;
+
         PlayerInput playerInput = FindObjectOfType<PlayerInput>();
         if (playerInput != null)
         {
             playerInput.RegisterNote(this);
-            Debug.Log($"Note registered on rail {railIndex} at position {transform.position}");
         }
     }
 }

@@ -28,7 +28,10 @@ public class HitZone : MonoBehaviour
 
     public Note GetClosestNote()
     {
-        if (notesInZone.Count == 0) return null;
+        if (notesInZone.Count == 0)
+        {
+            return null;
+        }
         
         // Return the note closest to the center of the hit zone
         Note closest = null;
@@ -36,7 +39,10 @@ public class HitZone : MonoBehaviour
         
         foreach (Note note in notesInZone)
         {
-            if (note == null) continue; // Skip if note was destroyed
+            if (note == null)
+            {
+                continue;
+            }
             
             float distance = Mathf.Abs(note.transform.position.y - transform.position.y);
             if (distance < closestDistance)

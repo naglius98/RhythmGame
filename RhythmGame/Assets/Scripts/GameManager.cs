@@ -33,8 +33,14 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         ScoreManager.Reset();
-        if (noteSpawner == null) noteSpawner = FindObjectOfType<NoteSpawner>();
-        if (audioSource == null) audioSource = FindObjectOfType<AudioSource>();
+        if (noteSpawner == null)
+        {
+            noteSpawner = FindObjectOfType<NoteSpawner>();
+        }
+        if (audioSource == null)
+        {
+            audioSource = FindObjectOfType<AudioSource>();
+        }
         if (audioSource == null)
         {
             var go = new GameObject("MapAudioSource");
@@ -44,7 +50,9 @@ public class GameManager : MonoBehaviour
 
         string folder = songFolderName;
         if (string.IsNullOrEmpty(folder))
+        {
             folder = SongSelectBehaviour.SelectedSongFolder;
+        }
         if (string.IsNullOrEmpty(folder))
         {
             string[] available = MapLoader.GetAvailableSongFolders();
@@ -104,7 +112,9 @@ public class GameManager : MonoBehaviour
         string uri = fullPath;
 #if UNITY_EDITOR || UNITY_STANDALONE
         if (!uri.StartsWith("file://"))
+        {
             uri = "file:///" + uri.Replace("\\", "/");
+        }
 #endif
         AudioType audioType = audioFileName.EndsWith(".mp3", System.StringComparison.OrdinalIgnoreCase)
             ? AudioType.MPEG
@@ -135,6 +145,18 @@ public class GameManager : MonoBehaviour
         gameStarted = true;
     }
 
+    public bool MapClockRunning => gameStarted;
+
+    // Seconds since map start
+    public float GetMapElapsedSeconds()
+    {
+        if (!gameStarted)
+        {
+            return 0f;
+        }
+        return Time.time - gameStartTime;
+    }
+
     // Call if song is complete or accuracy drops below 60%
     public void TriggerGameOver()
     {
@@ -150,7 +172,9 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         if (!gameStarted || spawnList == null || noteSpawner == null || !noteSpawner.IsUsingMap())
+        {
             return;
+        }
 
         float elapsed = Time.time - gameStartTime;
         noteSpawner.SpawnFromMapUpTo(elapsed);
@@ -162,8 +186,8 @@ public class GameManager : MonoBehaviour
             TriggerGameOver();
         }
 
-        int totalJudged = ScoreManager.Hits + ScoreManager.Misses;
-        if (!gameOverTriggered && !PauseMenuBehaviour.IsPaused && totalJudged > 0 && ScoreManager.GetAccuracyPercent() < 60f)
+        int totalJudged = ScoreManager.NotesJudged;
+        if (!gameOverTriggered && !PauseMenuBehaviour.IsPaused && totalJudged >= 8 && ScoreManager.GetAccuracyPercent() < 60f)
         {
             gameOverTriggered = true;
             TriggerGameOver();

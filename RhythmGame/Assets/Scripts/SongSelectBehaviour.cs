@@ -34,7 +34,9 @@ public class SongSelectBehaviour : MonoBehaviour
 
         string[] folders = MapLoader.GetAvailableSongFolders();
         if (folders == null || folders.Length == 0)
+        {
             return;
+        }
 
         for (int i = 0; i < listContent.childCount; i++)
             Destroy(listContent.GetChild(i).gameObject);
@@ -46,17 +48,23 @@ public class SongSelectBehaviour : MonoBehaviour
 
             var text = buttonObj.GetComponentInChildren<Text>();
             if (text != null)
+            {
                 text.text = folder;
+            }
             else
             {
                 var tmpText = buttonObj.GetComponentInChildren<TMPro.TMP_Text>();
                 if (tmpText != null)
+                {
                     tmpText.text = folder;
+                }
             }
 
             var helper = buttonObj.GetComponent<SongButtonHelper>();
             if (helper != null)
+            {
                 helper.folderName = folder;
+            }
             else
             {
                 helper = buttonObj.AddComponent<SongButtonHelper>();
