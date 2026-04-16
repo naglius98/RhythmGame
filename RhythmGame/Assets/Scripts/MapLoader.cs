@@ -88,13 +88,49 @@ public static class MapLoader
         }
     }
 
-    // Load difficulty file and build spawn list
-    public static List<MapNoteSpawn> LoadAndBuildSpawnList(string songFolderName, string fileName, float bpm, float travelTimeSeconds)
+    // Full path to a beatmap .dat in the song folder
+    public static string GetBeatmapDatPathInSongFolder(string songFolderName)
     {
-        string path = Path.Combine(GetSongPath(songFolderName), fileName);
-        if (!File.Exists(path))
+        string folder = GetSongPath(songFolderName);
+        if (!Directory.Exists(folder))
         {
-            Debug.LogWarning($"Difficulty file not found at {path}");
+            return null;
+        }
+
+        var found = new List<string>();
+        foreach (string full in Directory.GetFiles(folder, "*.dat"))
+        {
+            if (string.Equals(Path.GetFileName(full), "Info.dat", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+            found.Add(full);
+        }
+        if (found.Count == 0)
+        {
+            return null;
+        }
+        found.Sort(StringComparer.OrdinalIgnoreCase);
+        if (found.Count > 1)
+        {
+            Debug.LogWarning(
+                "[MapLoader] Multiple beatmap .dat files in \"" + songFolderName + "\"; using " +
+                Path.GetFileName(found[0]) + ".");
+        }
+        return found[0];
+    }
+
+    // Load .dat file and build spawn list
+    public static List<MapNoteSpawn> LoadAndBuildSpawnList(
+        string songFolderName,
+        float bpm,
+        float travelTimeSeconds,
+        float synthHoldMaxBeatGapBeats = 0f)
+    {
+        string path = GetBeatmapDatPathInSongFolder(songFolderName);
+        if (string.IsNullOrEmpty(path))
+        {
+            Debug.LogWarning("No beatmap .dat in song folder (excluding Info.dat): " + GetSongPath(songFolderName));
             return new List<MapNoteSpawn>();
         }
 
@@ -105,6 +141,7 @@ public static class MapLoader
             if (v2 != null && v2._notes != null && v2._notes.Length > 0)
             {
                 List<MapNoteSpawn> taps = BuildSpawnList(bpm, travelTimeSeconds, v2);
+                taps = SynthesizeHoldsFromAdjacentTaps(taps, bpm, travelTimeSeconds, synthHoldMaxBeatGapBeats);
                 List<MapNoteSpawn> sidecar = LoadHoldsSidecar(songFolderName, bpm, travelTimeSeconds);
                 return ReturnWithHoldLog(MergeTapsAndHolds(taps, sidecar, null), 0);
             }
@@ -112,7 +149,7 @@ public static class MapLoader
             var v3 = JsonUtility.FromJson<DifficultyDatV3>(json);
             if (v3 != null)
             {
-                // JsonUtility often fails to fill burstSliders on large v3 charts; merge with raw-array parse.
+                // Merge burst sliders with raw-array parse
                 BurstSliderV3[] burstSliders = CoalesceBurstSliders(v3.burstSliders, json);
                 bool hasColor = v3.colorNotes != null && v3.colorNotes.Length > 0;
                 bool hasBurst = burstSliders != null && burstSliders.Length > 0;
@@ -121,6 +158,7 @@ public static class MapLoader
                     List<MapNoteSpawn> taps = hasColor
                         ? BuildSpawnListFromV3(bpm, travelTimeSeconds, v3.colorNotes)
                         : new List<MapNoteSpawn>();
+                    taps = SynthesizeHoldsFromAdjacentTaps(taps, bpm, travelTimeSeconds, synthHoldMaxBeatGapBeats);
                     List<MapNoteSpawn> burstHolds = hasBurst
                         ? BuildHoldsFromBurstSliders(bpm, travelTimeSeconds, burstSliders)
                         : new List<MapNoteSpawn>();
@@ -290,6 +328,88 @@ public static class MapLoader
 
         list.Sort((a, b) => a.spawnTime.CompareTo(b.spawnTime));
         return list;
+    }
+
+    // Merge consecutive taps on the same lane into one hold when each step gap is in [MinHoldBeatSpan, maxBeatGap]
+    static List<MapNoteSpawn> SynthesizeHoldsFromAdjacentTaps(
+        List<MapNoteSpawn> taps,
+        float bpm,
+        float travelTimeSeconds,
+        float maxBeatGap)
+    {
+        if (maxBeatGap <= 0f || taps == null || taps.Count < 2)
+        {
+            return taps;
+        }
+
+        float secondsPerBeat = 60f / bpm;
+        var byRail = new List<MapNoteSpawn>[4];
+        for (int r = 0; r < 4; r++)
+        {
+            byRail[r] = new List<MapNoteSpawn>();
+        }
+        var nonTap = new List<MapNoteSpawn>();
+        foreach (MapNoteSpawn s in taps)
+        {
+            if (s.kind != NoteKind.Tap)
+            {
+                nonTap.Add(s);
+                continue;
+            }
+            int r = Mathf.Clamp(s.railIndex, 0, 3);
+            byRail[r].Add(s);
+        }
+        for (int r = 0; r < 4; r++)
+        {
+            byRail[r].Sort((a, b) => a.idealHeadElapsed.CompareTo(b.idealHeadElapsed));
+        }
+
+        var merged = new List<MapNoteSpawn>(taps.Count);
+        for (int r = 0; r < 4; r++)
+        {
+            List<MapNoteSpawn> list = byRail[r];
+            int i = 0;
+            while (i < list.Count)
+            {
+                int j = i;
+                while (j + 1 < list.Count)
+                {
+                    float gapBeats = (list[j + 1].idealHeadElapsed - list[j].idealHeadElapsed) / secondsPerBeat;
+                    if (gapBeats >= MinHoldBeatSpan - 0.0001f && gapBeats <= maxBeatGap + 0.0001f)
+                    {
+                        j++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                if (j > i)
+                {
+                    MapNoteSpawn head = list[i];
+                    MapNoteSpawn tail = list[j];
+                    float spawnTime = head.idealHeadElapsed - travelTimeSeconds;
+                    merged.Add(new MapNoteSpawn
+                    {
+                        kind = NoteKind.Hold,
+                        idealHeadElapsed = head.idealHeadElapsed,
+                        idealTailElapsed = tail.idealHeadElapsed,
+                        spawnTime = spawnTime,
+                        railIndex = r
+                    });
+                    i = j + 1;
+                }
+                else
+                {
+                    merged.Add(list[i]);
+                    i++;
+                }
+            }
+        }
+        merged.AddRange(nonTap);
+        merged.Sort((a, b) => a.spawnTime.CompareTo(b.spawnTime));
+        return merged;
     }
 
     static List<MapNoteSpawn> BuildHoldsFromBurstSliders(float bpm, float travelTimeSeconds, BurstSliderV3[] sliders)
@@ -498,34 +618,5 @@ public static class MapLoader
         }
 
         return false;
-    }
-
-    // Get the first difficulty beatmap filename 
-    public static string GetFirstDifficultyFilename(InfoDat info, string preferredDifficulty = "Normal")
-    {
-        if (info?._difficultyBeatmapSets == null || info._difficultyBeatmapSets.Length == 0)
-        {
-            return null;
-        }
-
-        foreach (var set in info._difficultyBeatmapSets)
-        {
-            if (set._difficultyBeatmaps == null || set._difficultyBeatmaps.Length == 0)
-            {
-                continue;
-            }
-
-            foreach (var d in set._difficultyBeatmaps)
-            {
-                if (string.Equals(d._difficulty, preferredDifficulty, StringComparison.OrdinalIgnoreCase))
-                {
-                    return d._beatmapFilename;
-                }
-            }
-
-            return set._difficultyBeatmaps[0]._beatmapFilename;
-        }
-
-        return null;
     }
 }

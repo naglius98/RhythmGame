@@ -11,14 +11,19 @@ public class GameManager : MonoBehaviour
     [Tooltip("Folder name inside StreamingAssets/Maps/")]
     public string songFolderName;
 
-    [Tooltip("Preferred difficulty")]
-    public string preferredDifficulty = "Normal";
-
     public NoteSpawner noteSpawner;
     public AudioSource audioSource;
 
+    [Tooltip("If > 0, consecutive taps on the same lane merge into holds when each step is at most this many beats apart (minimum span is MapLoader.MinHoldBeatSpan). 0 = off.")]
+    [Min(0f)]
+    public float synthHoldMaxBeatGapBeats;
+
     [Tooltip("Scene to load on game over")]
     public string gameOverSceneName = "GameOver";
+
+    [Tooltip("After at least 8 judged notes, game over if accuracy is below this percent. Set to 0 to turn off accuracy-based game over (e.g. for testing).")]
+    [Range(0f, 100f)]
+    public float gameOverIfAccuracyBelowPercent = 60f;
 
     [Header("Runtime (read-only)")]
     [SerializeField] string loadedSongName;
@@ -72,15 +77,8 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        string diffFile = MapLoader.GetFirstDifficultyFilename(info, preferredDifficulty);
-        if (string.IsNullOrEmpty(diffFile))
-        {
-            Debug.LogWarning("No difficulty file in map. Using random spawner.");
-            return;
-        }
-
         float travelTime = noteSpawner.GetTravelTimeSeconds();
-        spawnList = MapLoader.LoadAndBuildSpawnList(folder, diffFile, info._beatsPerMinute, travelTime);
+        spawnList = MapLoader.LoadAndBuildSpawnList(folder, info._beatsPerMinute, travelTime, synthHoldMaxBeatGapBeats);
         if (spawnList == null || spawnList.Count == 0)
         {
             Debug.LogWarning("No notes in map. Using random spawner.");
@@ -187,7 +185,10 @@ public class GameManager : MonoBehaviour
         }
 
         int totalJudged = ScoreManager.NotesJudged;
-        if (!gameOverTriggered && !PauseMenuBehaviour.IsPaused && totalJudged >= 8 && ScoreManager.GetAccuracyPercent() < 60f)
+        if (!gameOverTriggered && !PauseMenuBehaviour.IsPaused
+            && gameOverIfAccuracyBelowPercent > 0f
+            && totalJudged >= 8
+            && ScoreManager.GetAccuracyPercent() < gameOverIfAccuracyBelowPercent)
         {
             gameOverTriggered = true;
             TriggerGameOver();

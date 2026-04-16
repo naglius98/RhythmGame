@@ -1022,6 +1022,11 @@ MonoBehaviour:
   - -1
   - 1
   - 3
+  railNoteColors:
+  - {r: 0.95, g: 0.35, b: 0.35, a: 1}
+  - {r: 0.35, g: 0.75, b: 0.95, a: 1}
+  - {r: 0.45, g: 0.95, b: 0.45, a: 1}
+  - {r: 0.95, g: 0.85, b: 0.35, a: 1}
   spawnHeight: 6
   hitZoneY: 0
   minInterval: 0.5
@@ -1058,6 +1063,8 @@ MonoBehaviour:
   - {fileID: 632826884}
   - {fileID: 123922937}
   - {fileID: 1201314326}
+  destroyHoldOnEarlyPress: 1
+  earlyHoldDestroyLeadSeconds: 0.25
 --- !u!114 &534452940
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1071,10 +1078,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   songFolderName: 
-  preferredDifficulty: Hard
   noteSpawner: {fileID: 534452937}
   audioSource: {fileID: 1382823651}
+  synthHoldMaxBeatGapBeats: 2
   gameOverSceneName: GameOver
+  gameOverIfAccuracyBelowPercent: 55
   loadedSongName: 
   bpm: 0
   spawnCount: 0

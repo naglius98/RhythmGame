@@ -43,9 +43,30 @@ public class NoteSpawner : MonoBehaviour
 
     void Start()
     {
+        AutoDetectHitZoneY();
         if (!useMap)
         {
             ScheduleNextSpawn();
+        }
+    }
+
+    void AutoDetectHitZoneY()
+    {
+        HitZone[] zones = FindObjectsOfType<HitZone>();
+        if (zones == null || zones.Length == 0)
+        {
+            return;
+        }
+        float sum = 0f;
+        foreach (HitZone z in zones)
+        {
+            sum += z.transform.position.y;
+        }
+        float avg = sum / zones.Length;
+        if (Mathf.Abs(avg - hitZoneY) > 0.01f)
+        {
+            Debug.Log($"[NoteSpawner] Auto-adjusting hitZoneY from {hitZoneY:F2} to {avg:F2} (based on {zones.Length} HitZone objects)");
+            hitZoneY = avg;
         }
     }
 

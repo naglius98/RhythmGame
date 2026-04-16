@@ -9,13 +9,20 @@ public class Note : MonoBehaviour
     // Timeline seconds when this note should be hit
     public float idealHitElapsed;
 
+    // World Y of the leading edge when the note falls downward 
+    public float GetJudgeWorldY()
+    {
+        Collider2D c = GetComponent<Collider2D>();
+        return c != null ? c.bounds.min.y : transform.position.y;
+    }
+
     protected virtual void Update()
     {
         transform.Translate(Vector3.down * speed * Time.deltaTime);
 
         if (transform.position.y < -6f)
         {
-            ScoreManager.RecordMiss($"(passed line) rail{railIndex}");
+            ScoreManager.RecordMiss($"(passed line) rail{railIndex}", this);
             Destroy(gameObject);
         }
     }

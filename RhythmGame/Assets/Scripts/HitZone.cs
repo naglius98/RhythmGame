@@ -11,7 +11,7 @@ public class HitZone : MonoBehaviour
     void OnTriggerEnter2D(Collider2D other)
     {
         Note note = other.GetComponent<Note>();
-        if (note != null && note.railIndex == railIndex)
+        if (note != null && note.railIndex == railIndex && !notesInZone.Contains(note))
         {
             notesInZone.Add(note);
         }
@@ -44,7 +44,7 @@ public class HitZone : MonoBehaviour
                 continue;
             }
             
-            float distance = Mathf.Abs(note.transform.position.y - transform.position.y);
+            float distance = Mathf.Abs(note.GetJudgeWorldY() - transform.position.y);
             if (distance < closestDistance)
             {
                 closestDistance = distance;
@@ -53,6 +53,39 @@ public class HitZone : MonoBehaviour
         }
         
         return closest;
+    }
+
+    public HoldNote GetClosestPendingHold()
+    {
+        if (notesInZone.Count == 0)
+        {
+            return null;
+        }
+
+        HoldNote closest = null;
+        float closestDistance = float.MaxValue;
+
+        foreach (Note note in notesInZone)
+        {
+            if (note is not HoldNote h || h.Phase != HoldNote.HoldPhase.Pending)
+            {
+                continue;
+            }
+
+            float distance = Mathf.Abs(h.GetJudgeWorldY() - transform.position.y);
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                closest = h;
+            }
+        }
+
+        return closest;
+    }
+
+    public bool Contains(Note note)
+    {
+        return note != null && notesInZone.Contains(note);
     }
     
     // Clean up null references

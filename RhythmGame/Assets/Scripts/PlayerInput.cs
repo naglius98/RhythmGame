@@ -5,6 +5,10 @@ using System.Collections.Generic;
 public class PlayerInput : MonoBehaviour
 {
     public GameObject[] hitZones; // List of hit zones
+    [Tooltip("If true, an early press can destroy the nearest pending hold on that rail.")]
+    public bool destroyHoldOnEarlyPress = true;
+    [Tooltip("If > 0, only destroy a hold when press is this many seconds early or less. Set <= 0 for unlimited early destroy.")]
+    public float earlyHoldDestroyLeadSeconds = 0f;
 
     GameManager gameManager;
 
@@ -93,11 +97,11 @@ public class PlayerInput : MonoBehaviour
                 float tailErr = elapsed - h.idealTailElapsed;
                 if (elapsed < h.idealTailElapsed - TailWindowSeconds)
                 {
-                    ScoreManager.RecordMiss($"(hold early release) rail{rail}");
+                    ScoreManager.RecordMiss($"(hold early release) rail{rail}", h);
                 }
                 else
                 {
-                    ScoreManager.RecordTimedHit(tailErr, rail);
+                    ScoreManager.RecordTimedHit(tailErr, rail, h);
                 }
                 ClearActiveHold(rail, h);
                 continue;
@@ -105,7 +109,7 @@ public class PlayerInput : MonoBehaviour
 
             if (elapsed > h.idealTailElapsed + TailWindowSeconds)
             {
-                ScoreManager.RecordMiss($"(hold late tail) rail{rail}");
+                ScoreManager.RecordMiss($"(hold late tail) rail{rail}", h);
                 ClearActiveHold(rail, h);
             }
         }
@@ -149,42 +153,91 @@ public class PlayerInput : MonoBehaviour
             }
         }
 
-        HitZone zone = hitZones[railIndex].GetComponent<HitZone>();
-        if (zone == null)
-        {
-            return;
-        }
-
+        HitZone zone = hitZones[railIndex] != null ? hitZones[railIndex].GetComponent<HitZone>() : null;
         float elapsed = GetMapElapsed();
-
-        Note hitNote = zone.GetClosestNote();
-        if (hitNote is HoldNote hn && hn.Phase == HoldNote.HoldPhase.Pending)
+        LogNearestTimingDebug(railIndex, elapsed);
+        if (zone != null)
         {
-            if (hn.TryStartHead(elapsed))
+            HoldNote zoneHold = zone.GetClosestPendingHold();
+            if (zoneHold != null && zone.Contains(zoneHold))
             {
-                float errorSec = elapsed - hn.idealHitElapsed;
-                ScoreManager.RecordTimedHit(errorSec, railIndex);
-                activeHoldByRail[railIndex] = hn;
+                float holdErrSec = elapsed - zoneHold.idealHitElapsed;
+                float leadSec = zoneHold.idealHitElapsed - elapsed;
+
+                Debug.Log(
+                    $"[InputDebug] rail{railIndex} holdZoneTrigger contains=true judgeY={zoneHold.GetJudgeWorldY():F3} " +
+                    $"zoneY={zone.transform.position.y:F3} lead={leadSec:F3}s");
+
+                float holdErrMs = Mathf.Abs(holdErrSec * 1000f);
+                if (holdErrMs <= ScoreManager.GoodWindowMs && zoneHold.TryStartHead(elapsed, zoneHold.GetJudgeWorldY()))
+                {
+                    ScoreManager.RecordTimedHit(holdErrSec, railIndex, zoneHold);
+                    activeHoldByRail[railIndex] = zoneHold;
+                    return;
+                }
+
+                // In trigger but outside head timing window
+                bool inAllowedEarlyRange = earlyHoldDestroyLeadSeconds <= 0f || leadSec <= earlyHoldDestroyLeadSeconds;
+                if (destroyHoldOnEarlyPress && leadSec > TailWindowSeconds && inAllowedEarlyRange)
+                {
+                    ScoreManager.RecordMiss($"(hold early press destroy) rail{railIndex}", zoneHold);
+                    ConsumeNote(zoneHold);
+                    return;
+                }
+
+                if (leadSec < -TailWindowSeconds)
+                {
+                    ScoreManager.RecordMiss($"(hold late press destroy) rail{railIndex}", zoneHold);
+                    ConsumeNote(zoneHold);
+                    return;
+                }
             }
-            return;
+
+            Note zoneNote = zone.GetClosestNote();
+            if (zoneNote != null && !(zoneNote is HoldNote))
+            {
+                float tapErrSec = elapsed - zoneNote.idealHitElapsed;
+                if (Mathf.Abs(tapErrSec * 1000f) <= ScoreManager.GoodWindowMs)
+                {
+                    ScoreManager.RecordTimedHit(tapErrSec, railIndex, zoneNote);
+                    ConsumeNote(zoneNote);
+                    return;
+                }
+            }
         }
 
+        if (destroyHoldOnEarlyPress)
+        {
+            HoldNote nearestHold = GetNearestPendingHoldOnRail(railIndex);
+            if (nearestHold != null)
+            {
+                float leadSec = nearestHold.idealHitElapsed - elapsed;
+                if (leadSec > TailWindowSeconds)
+                {
+                    ScoreManager.RecordMiss($"(hold early press destroy) rail{railIndex}", nearestHold);
+                    ConsumeNote(nearestHold);
+                    return;
+                }
+            }
+        }
+
+        Note hitNote = GetClosestTapOnRailByTiming(railIndex, elapsed);
         if (hitNote != null)
         {
             float errorSec = elapsed - hitNote.idealHitElapsed;
-            ScoreManager.RecordTimedHit(errorSec, railIndex);
-            RemoveNote(hitNote);
-            Destroy(hitNote.gameObject);
+            if (Mathf.Abs(errorSec * 1000f) <= ScoreManager.GoodWindowMs)
+            {
+                ScoreManager.RecordTimedHit(errorSec, railIndex, hitNote);
+                ConsumeNote(hitNote);
+            }
+            else
+            {
+                ScoreManager.RecordMiss($"(bad press) rail{railIndex}");
+            }
         }
         else
         {
-            Note earliestNote = GetEarliestNoteOnRail(railIndex);
-            if (earliestNote != null)
-            {
-                ScoreManager.RecordMiss($"(early destroy) rail{railIndex}");
-                RemoveNote(earliestNote);
-                Destroy(earliestNote.gameObject);
-            }
+            ScoreManager.RecordMiss($"(bad press) rail{railIndex}");
         }
     }
 
@@ -202,14 +255,104 @@ public class PlayerInput : MonoBehaviour
 
         foreach (Note note in notesPerRail[railIndex])
         {
-            if (note.transform.position.y < lowestY)
+            float judgeY = note.GetJudgeWorldY();
+            if (judgeY < lowestY)
             {
-                lowestY = note.transform.position.y;
+                lowestY = judgeY;
                 earliest = note;
             }
         }
 
         return earliest;
+    }
+
+    Note GetClosestTapOnRailByTiming(int railIndex, float elapsed)
+    {
+        notesPerRail[railIndex].RemoveAll(note => note == null);
+        if (notesPerRail[railIndex].Count == 0)
+        {
+            return null;
+        }
+
+        float timingWindowSec = ScoreManager.GoodWindowMs / 1000f;
+        Note closest = null;
+        float closestError = float.MaxValue;
+
+        foreach (Note note in notesPerRail[railIndex])
+        {
+            if (note is HoldNote)
+            {
+                continue;
+            }
+
+            float err = Mathf.Abs(elapsed - note.idealHitElapsed);
+            if (err <= timingWindowSec && err < closestError)
+            {
+                closestError = err;
+                closest = note;
+            }
+        }
+
+        return closest;
+    }
+
+    HoldNote GetNearestPendingHoldOnRail(int railIndex)
+    {
+        notesPerRail[railIndex].RemoveAll(note => note == null);
+        HoldNote nearest = null;
+        float bestHead = float.MaxValue;
+        foreach (Note note in notesPerRail[railIndex])
+        {
+            if (note is HoldNote h && h.Phase == HoldNote.HoldPhase.Pending && h.idealHitElapsed < bestHead)
+            {
+                bestHead = h.idealHitElapsed;
+                nearest = h;
+            }
+        }
+        return nearest;
+    }
+
+    void LogNearestTimingDebug(int railIndex, float elapsed)
+    {
+        notesPerRail[railIndex].RemoveAll(note => note == null);
+        if (notesPerRail[railIndex].Count == 0)
+        {
+            Debug.Log($"[InputDebug] rail{railIndex} press t={elapsed:F3}s nearest=none");
+            return;
+        }
+
+        Note nearest = null;
+        float nearestAbsErr = float.MaxValue;
+        foreach (Note note in notesPerRail[railIndex])
+        {
+            if (note is HoldNote h && h.Phase != HoldNote.HoldPhase.Pending)
+            {
+                continue;
+            }
+
+            float absErr = Mathf.Abs(elapsed - note.idealHitElapsed);
+            if (absErr < nearestAbsErr)
+            {
+                nearestAbsErr = absErr;
+                nearest = note;
+            }
+        }
+
+        if (nearest == null)
+        {
+            Debug.Log($"[InputDebug] rail{railIndex} press t={elapsed:F3}s nearest=none-pending");
+            return;
+        }
+
+        float signedMs = (elapsed - nearest.idealHitElapsed) * 1000f;
+        float goodMs = ScoreManager.GoodWindowMs;
+        bool inGood = Mathf.Abs(signedMs) <= goodMs;
+        string kind = nearest is HoldNote hn
+            ? $"Hold phase={hn.Phase} head={hn.idealHitElapsed:F3}s tail={hn.idealTailElapsed:F3}s"
+            : $"Tap ideal={nearest.idealHitElapsed:F3}s";
+
+        Debug.Log(
+            $"[InputDebug] rail{railIndex} press t={elapsed:F3}s nearest={kind} err={signedMs:F1}ms inGood={inGood} (Good<= {goodMs:F1}ms)");
     }
 
     public void RegisterNote(Note note)
@@ -237,6 +380,17 @@ public class PlayerInput : MonoBehaviour
         {
             notesPerRail[note.railIndex].Remove(note);
         }
+    }
+
+    void ConsumeNote(Note note)
+    {
+        if (note == null)
+        {
+            return;
+        }
+        RemoveNote(note);
+        note.gameObject.SetActive(false);
+        Destroy(note.gameObject);
     }
 
     void QuitGame()

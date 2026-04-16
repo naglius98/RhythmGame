@@ -73,10 +73,10 @@ public static class ScoreManager
         {
             return HitJudgment.Good;
         }
-        return HitJudgment.Good;
+        return HitJudgment.Miss;
     }
 
-    public static void RecordTimedHit(float errorSeconds, int railIndex = -1)
+    public static void RecordTimedHit(float errorSeconds, int railIndex = -1, Note hitNote = null)
     {
         float absMs = Mathf.Abs(errorSeconds * 1000f);
         float signedMs = errorSeconds * 1000f;
@@ -86,34 +86,64 @@ public static class ScoreManager
             case HitJudgment.Perfect: perfects++; break;
             case HitJudgment.Great: greats++; break;
             case HitJudgment.Good: goods++; break;
+            case HitJudgment.Miss:
+                misses++;
+                combo = 0;
+                break;
         }
 
-        combo++;
-        if (combo > maxCombo)
+        if (j != HitJudgment.Miss)
         {
-            maxCombo = combo;
-        }
+            combo++;
+            if (combo > maxCombo)
+            {
+                maxCombo = combo;
+            }
 
-        float comboMult = 1f + 0.01f * Mathf.Min(combo - 1, 100);
-        int gained = Mathf.RoundToInt(BasePoints(j) * comboMult);
-        score += gained;
+            float comboMult = 1f + 0.01f * Mathf.Min(combo - 1, 100);
+            int gained = Mathf.RoundToInt(BasePoints(j) * comboMult);
+            score += gained;
+
+            if (LogScoring)
+            {
+                string rail = railIndex >= 0 ? $"rail{railIndex} " : "";
+                Debug.Log(
+                    $"[Scoring] {rail}{j}  signedErr={signedMs:F1}ms  abs={absMs:F1}ms  " +
+                    $"combo={combo}  +{gained}  totalScore={score}  timingAcc={GetAccuracyPercent():F1}%{FormatNoteKindLine(hitNote)}");
+            }
+            return;
+        }
 
         if (LogScoring)
         {
             string rail = railIndex >= 0 ? $"rail{railIndex} " : "";
             Debug.Log(
                 $"[Scoring] {rail}{j}  signedErr={signedMs:F1}ms  abs={absMs:F1}ms  " +
-                $"combo={combo}  +{gained}  totalScore={score}  timingAcc={GetAccuracyPercent():F1}%");
+                $"combo=0  +0  totalScore={score}  timingAcc={GetAccuracyPercent():F1}%{FormatNoteKindLine(hitNote)}");
         }
     }
 
-    public static void RecordMiss(string debugContext = "")
+    static string FormatNoteKindLine(Note n)
+    {
+        if (n == null)
+        {
+            return "";
+        }
+        if (n is HoldNote hn)
+        {
+            return $"  noteKind=Hold phase={hn.Phase} idealHead={hn.idealHitElapsed:F3}s tail={hn.idealTailElapsed:F3}s judgeY={hn.GetJudgeWorldY():F2}";
+        }
+        return $"  noteKind=Tap ideal={n.idealHitElapsed:F3}s judgeY={n.GetJudgeWorldY():F2}";
+    }
+
+    public static void RecordMiss(string debugContext = "", Note missedNote = null)
     {
         misses++;
         combo = 0;
         if (LogScoring)
         {
-            Debug.Log($"[Scoring] Miss{(string.IsNullOrEmpty(debugContext) ? "" : " " + debugContext)}  misses={misses}  combo=0");
+            Debug.Log(
+                $"[Scoring] Miss{(string.IsNullOrEmpty(debugContext) ? "" : " " + debugContext)}{FormatNoteKindLine(missedNote)}  misses={misses}  combo=0");
         }
     }
 
