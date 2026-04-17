@@ -182,3 +182,10 @@ MonoBehaviour:
   railIndex: 0
   idealHitElapsed: 0
   idealTailElapsed: 0
+  glowBaseAlpha: 1
+  glowPulseAmount: 1
+  glowPulseSpeed: 7
+  glowWidthMultiplier: 1.35
+  glowLengthMultiplier: 1.05
+  glowTintToWhite: 0.196
+  glowAlphaMultiplier: 2

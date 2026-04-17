@@ -5,10 +5,8 @@ using System.Collections.Generic;
 public class PlayerInput : MonoBehaviour
 {
     public GameObject[] hitZones; // List of hit zones
-    [Tooltip("If true, an early press can destroy the nearest pending hold on that rail.")]
-    public bool destroyHoldOnEarlyPress = true;
-    [Tooltip("If > 0, only destroy a hold when press is this many seconds early or less. Set <= 0 for unlimited early destroy.")]
-    public float earlyHoldDestroyLeadSeconds = 0f;
+    [Tooltip("If > 0, only destroy a note on early press when it's within this many seconds ahead. Set <= 0 for no lead limit.")]
+    public float earlyPressDestroyLeadSeconds = 0f;
 
     GameManager gameManager;
 
@@ -162,33 +160,11 @@ public class PlayerInput : MonoBehaviour
             if (zoneHold != null && zone.Contains(zoneHold))
             {
                 float holdErrSec = elapsed - zoneHold.idealHitElapsed;
-                float leadSec = zoneHold.idealHitElapsed - elapsed;
-
-                Debug.Log(
-                    $"[InputDebug] rail{railIndex} holdZoneTrigger contains=true judgeY={zoneHold.GetJudgeWorldY():F3} " +
-                    $"zoneY={zone.transform.position.y:F3} lead={leadSec:F3}s");
-
                 float holdErrMs = Mathf.Abs(holdErrSec * 1000f);
                 if (holdErrMs <= ScoreManager.GoodWindowMs && zoneHold.TryStartHead(elapsed, zoneHold.GetJudgeWorldY()))
                 {
                     ScoreManager.RecordTimedHit(holdErrSec, railIndex, zoneHold);
                     activeHoldByRail[railIndex] = zoneHold;
-                    return;
-                }
-
-                // In trigger but outside head timing window
-                bool inAllowedEarlyRange = earlyHoldDestroyLeadSeconds <= 0f || leadSec <= earlyHoldDestroyLeadSeconds;
-                if (destroyHoldOnEarlyPress && leadSec > TailWindowSeconds && inAllowedEarlyRange)
-                {
-                    ScoreManager.RecordMiss($"(hold early press destroy) rail{railIndex}", zoneHold);
-                    ConsumeNote(zoneHold);
-                    return;
-                }
-
-                if (leadSec < -TailWindowSeconds)
-                {
-                    ScoreManager.RecordMiss($"(hold late press destroy) rail{railIndex}", zoneHold);
-                    ConsumeNote(zoneHold);
                     return;
                 }
             }
@@ -206,21 +182,6 @@ public class PlayerInput : MonoBehaviour
             }
         }
 
-        if (destroyHoldOnEarlyPress)
-        {
-            HoldNote nearestHold = GetNearestPendingHoldOnRail(railIndex);
-            if (nearestHold != null)
-            {
-                float leadSec = nearestHold.idealHitElapsed - elapsed;
-                if (leadSec > TailWindowSeconds)
-                {
-                    ScoreManager.RecordMiss($"(hold early press destroy) rail{railIndex}", nearestHold);
-                    ConsumeNote(nearestHold);
-                    return;
-                }
-            }
-        }
-
         Note hitNote = GetClosestTapOnRailByTiming(railIndex, elapsed);
         if (hitNote != null)
         {
@@ -229,16 +190,54 @@ public class PlayerInput : MonoBehaviour
             {
                 ScoreManager.RecordTimedHit(errorSec, railIndex, hitNote);
                 ConsumeNote(hitNote);
-            }
-            else
-            {
-                ScoreManager.RecordMiss($"(bad press) rail{railIndex}");
+                return;
             }
         }
-        else
+
+        // Destroy the earliest pending note on the rail
+        Note earliest = GetEarliestPendingNoteOnRailByTime(railIndex);
+        if (earliest != null)
         {
-            ScoreManager.RecordMiss($"(bad press) rail{railIndex}");
+            float leadSec = earliest.idealHitElapsed - elapsed;
+            string kind = earliest is HoldNote ? "hold" : "tap";
+            bool inAllowedEarlyRange = earlyPressDestroyLeadSeconds <= 0f || leadSec <= earlyPressDestroyLeadSeconds;
+
+            if (leadSec > TailWindowSeconds && inAllowedEarlyRange)
+            {
+                ScoreManager.RecordMiss($"({kind} early press destroy) rail{railIndex}", earliest);
+                ConsumeNote(earliest);
+                return;
+            }
+
+            if (leadSec < -TailWindowSeconds)
+            {
+                ScoreManager.RecordMiss($"({kind} late press destroy) rail{railIndex}", earliest);
+                ConsumeNote(earliest);
+                return;
+            }
         }
+
+        ScoreManager.RecordMiss($"(bad press) rail{railIndex}");
+    }
+
+    Note GetEarliestPendingNoteOnRailByTime(int railIndex)
+    {
+        notesPerRail[railIndex].RemoveAll(note => note == null);
+        Note earliest = null;
+        float bestTime = float.MaxValue;
+        foreach (Note note in notesPerRail[railIndex])
+        {
+            if (note is HoldNote h && h.Phase != HoldNote.HoldPhase.Pending)
+            {
+                continue;
+            }
+            if (note.idealHitElapsed < bestTime)
+            {
+                bestTime = note.idealHitElapsed;
+                earliest = note;
+            }
+        }
+        return earliest;
     }
 
     Note GetEarliestNoteOnRail(int railIndex)

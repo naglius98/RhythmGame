@@ -7,12 +7,23 @@ using UnityEngine;
 public class HoldNote : Note
 {
     const string BodyChildName = "HoldBodyVisual";
+    const string GlowChildName = "HoldGlowVisual";
 
     public float idealTailElapsed;
+    [Header("Hold Glow")]
+    [Range(0f, 1f)] public float glowBaseAlpha = 0.35f;
+    [Range(0f, 1f)] public float glowPulseAmount = 0.15f;
+    [Min(0f)] public float glowPulseSpeed = 7f;
+    [Min(1f)] public float glowWidthMultiplier = 1.2f;
+    [Min(1f)] public float glowLengthMultiplier = 1.05f;
+    [Range(0f, 1f)] public float glowTintToWhite = 0.9f;
+    [Min(0f)] public float glowAlphaMultiplier = 2f;
 
     float holdVisualWidthX;
     GameManager gameManager;
     Transform bodyVisual;
+    Transform glowVisual;
+    SpriteRenderer glowRenderer;
     float anchoredHeadY;
     bool hasAnchoredHeadY;
 
@@ -35,8 +46,11 @@ public class HoldNote : Note
         holdVisualWidthX = s0.x * 0.25f;
 
         EnsureBodyVisualFromPrefabSprite();
+        EnsureGlowVisual();
         transform.localScale = new Vector3(holdVisualWidthX, 1f, 1f);
         ApplyBodyVisualLength(length);
+        ApplyGlowVisualLength(length);
+        SetGlowAlpha(0f);
         ConfigureHeadCollider();
 
         if (gameManager == null)
@@ -44,6 +58,43 @@ public class HoldNote : Note
             gameManager = FindObjectOfType<GameManager>();
         }
         ApplyRailColor();
+        RefreshGlowTint();
+    }
+
+    void EnsureGlowVisual()
+    {
+        if (glowVisual != null && glowRenderer != null)
+        {
+            return;
+        }
+
+        Transform existing = transform.Find(GlowChildName);
+        if (existing != null)
+        {
+            glowVisual = existing;
+            glowRenderer = existing.GetComponent<SpriteRenderer>();
+            return;
+        }
+
+        if (bodyVisual == null)
+        {
+            return;
+        }
+
+        SpriteRenderer bodySr = bodyVisual.GetComponent<SpriteRenderer>();
+        if (bodySr == null)
+        {
+            return;
+        }
+
+        GameObject glowGo = new GameObject(GlowChildName);
+        glowVisual = glowGo.transform;
+        glowVisual.SetParent(transform, false);
+        glowVisual.localRotation = Quaternion.identity;
+        glowRenderer = glowGo.AddComponent<SpriteRenderer>();
+        CopySpriteRendererForBody(bodySr, glowRenderer);
+        glowRenderer.sortingOrder = bodySr.sortingOrder + 2;
+        RefreshGlowTint();
     }
 
     void EnsureBodyVisualFromPrefabSprite()
@@ -98,9 +149,54 @@ public class HoldNote : Note
         }
 
         float len = Mathf.Max(0.0001f, lengthWorld);
+        
         // Keep visual bottom exactly at parent origin regardless sprite pivot
         bodyVisual.localScale = new Vector3(1f, len, 1f);
         bodyVisual.localPosition = new Vector3(0f, GetBodyBottomPivotOffsetY() * len, 0f);
+    }
+
+    void ApplyGlowVisualLength(float lengthWorld)
+    {
+        if (glowVisual == null)
+        {
+            return;
+        }
+
+        float len = Mathf.Max(0.0001f, lengthWorld) * glowLengthMultiplier;
+        glowVisual.localScale = new Vector3(glowWidthMultiplier, len, 1f);
+        glowVisual.localPosition = new Vector3(0f, GetBodyBottomPivotOffsetY() * len, 0f);
+    }
+
+    void SetGlowAlpha(float alpha)
+    {
+        if (glowRenderer == null)
+        {
+            return;
+        }
+        Color c = glowRenderer.color;
+        c.a = Mathf.Clamp01(alpha * glowAlphaMultiplier);
+        glowRenderer.color = c;
+    }
+
+    void RefreshGlowTint()
+    {
+        if (glowRenderer == null)
+        {
+            return;
+        }
+
+        Color baseColor = Color.white;
+        if (bodyVisual != null)
+        {
+            SpriteRenderer bodySr = bodyVisual.GetComponent<SpriteRenderer>();
+            if (bodySr != null)
+            {
+                baseColor = bodySr.color;
+            }
+        }
+        Color tinted = Color.Lerp(baseColor, Color.white, glowTintToWhite);
+        tinted.a = glowRenderer.color.a;
+        glowRenderer.color = tinted;
     }
 
     float GetBodyBottomPivotOffsetY()
@@ -169,6 +265,7 @@ public class HoldNote : Note
         transform.position = new Vector3(x, y, transform.position.z);
         transform.localScale = new Vector3(holdVisualWidthX, 1f, 1f);
         ApplyBodyVisualLength(length);
+        ApplyGlowVisualLength(length);
     }
 
     protected override void Update()
@@ -183,8 +280,12 @@ public class HoldNote : Note
             {
                 RefreshAnchoredHoldVisual(gameManager.GetMapElapsedSeconds());
             }
+            float pulse = glowBaseAlpha + Mathf.Sin(Time.time * glowPulseSpeed) * glowPulseAmount;
+            SetGlowAlpha(pulse);
             return;
         }
+
+        SetGlowAlpha(0f);
 
         transform.Translate(Vector3.down * speed * Time.deltaTime);
         if (GetJudgeWorldY() < -6f)

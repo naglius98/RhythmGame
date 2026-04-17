@@ -1063,7 +1063,7 @@ MonoBehaviour:
   - {fileID: 632826884}
   - {fileID: 123922937}
   - {fileID: 1201314326}
-  destroyHoldOnEarlyPress: 1
+  destroyHoldOnEarlyPress: 0
   earlyHoldDestroyLeadSeconds: 0.25
 --- !u!114 &534452940
 MonoBehaviour:
