@@ -1080,9 +1080,11 @@ MonoBehaviour:
   songFolderName: 
   noteSpawner: {fileID: 534452937}
   audioSource: {fileID: 1382823651}
-  synthHoldMaxBeatGapBeats: 2
+  synthHoldMaxBeatGapBeats: 1
   gameOverSceneName: GameOver
   gameOverIfAccuracyBelowPercent: 55
+  minJudgedNotesBeforeAccuracyGameOver: 20
+  accuracyGameOverGraceSeconds: 10
   loadedSongName: 
   bpm: 0
   spawnCount: 0

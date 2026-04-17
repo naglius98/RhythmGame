@@ -21,9 +21,15 @@ public class GameManager : MonoBehaviour
     [Tooltip("Scene to load on game over")]
     public string gameOverSceneName = "GameOver";
 
-    [Tooltip("After at least 8 judged notes, game over if accuracy is below this percent. Set to 0 to turn off accuracy-based game over (e.g. for testing).")]
+    [Tooltip("After at least 8 judged notes, game over if accuracy is below this percent. Set to 0 to turn off accuracy-based game over")]
     [Range(0f, 100f)]
     public float gameOverIfAccuracyBelowPercent = 60f;
+    [Tooltip("Do not apply accuracy-based game over until at least this many notes are judged.")]
+    [Min(1)]
+    public int minJudgedNotesBeforeAccuracyGameOver = 20;
+    [Tooltip("Extra startup grace period (seconds) before accuracy-based game over can trigger.")]
+    [Min(0f)]
+    public float accuracyGameOverGraceSeconds = 10f;
 
     [Header("Runtime (read-only)")]
     [SerializeField] string loadedSongName;
@@ -185,9 +191,11 @@ public class GameManager : MonoBehaviour
         }
 
         int totalJudged = ScoreManager.NotesJudged;
+        float mapElapsed = Time.time - gameStartTime;
         if (!gameOverTriggered && !PauseMenuBehaviour.IsPaused
             && gameOverIfAccuracyBelowPercent > 0f
-            && totalJudged >= 8
+            && totalJudged >= minJudgedNotesBeforeAccuracyGameOver
+            && mapElapsed >= accuracyGameOverGraceSeconds
             && ScoreManager.GetAccuracyPercent() < gameOverIfAccuracyBelowPercent)
         {
             gameOverTriggered = true;
