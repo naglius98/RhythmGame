@@ -1063,8 +1063,7 @@ MonoBehaviour:
   - {fileID: 632826884}
   - {fileID: 123922937}
   - {fileID: 1201314326}
-  destroyHoldOnEarlyPress: 0
-  earlyHoldDestroyLeadSeconds: 0.25
+  earlyPressDestroyLeadSeconds: 0
 --- !u!114 &534452940
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2486,7 +2485,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 1
-  m_Volume: 0.48
+  m_Volume: 0.159
   m_Pitch: 1
   Loop: 0
   Mute: 0
