@@ -2,13 +2,14 @@ BUILD NOTES
 
 GAME OVERVIEW
 
-The current stage is the skeleton of the game with most functionalities working. The only thing missing is the assets and proper UI. New songs are easily added as they get directly converted from beat saber maps to maps appropriate to this game.
+The current stage is the skeleton of the game with most all the basic functionalities. While there is improvement available for the UI and feedback, the main functionalities are all existing in game. 
 
 CURRENT FEATURES:
 
-The features currently available to the player are the following: the ability to use the keyboard to hit notes, with visual feedback when pressing the button associated with a rail. If the note is missed, then it will disappear when hit outside the zone. If a note is hit within the hit zone, then the notes gets destroyed on impact. The notes are decided based on maps available to the player. Currently there is only one map available to be played.
-The score is decided through precision. The player starts at 100%, and any note missed will bring the score down.
-The game ends when the song is over or if the player hits under 60% accuracy.
+The features currently available to the player are the following: the ability to use the keyboard to hit notes, with visual feedback when pressing the button associated with a rail. If the note is missed, then it will disappear when hit outside the zone. If a note is hit within the hit zone, then the notes gets destroyed on impact. The notes are decided based on maps available to the player. Currently there are 3 maps available to be played.
+There are 2 kinds of notes: hold notes where the player needs to hold the button and tap notes that need to be tapped.
+The score is decided through precision. The player starts at 100%, and any note missed will bring the score down. On top of an accuracy score, there is also a score decided based on how close to perfect the note is, with different timed scores based on how close to the timing you are. The score is also supported by a multiplier that accounts for accuracy and streak.
+The game ends when the song is over or if the player hits under 55% accuracy. To avoid for weird cases where player missed the first notes, there is also a minimum notes played and a minimum time of the song being passed before the player can actually fail.
 
 CONTROLS:
 
@@ -18,18 +19,19 @@ J for the third rail.
 K for the fourth rail.
 Q to quit the game.
 
-FUTURE FEATURES:
+MISSING FEATURES:
 
-For the final release, the following features will be added:
+- The only glaring miss is better UI feedback;
+- Another feature that could have been added would have been difficulty sliders or a "practice" mode where you could practice the song without risk of dying;
+- With more freedom, different kind of notes could have been added;
 
-- Gameplay:
-	- At least 1 more note type will be added;
+POSTMORTEM
 
-- Audio:
-	- 3-5 songs will be fully mapped;
+The hardest part of this project wasn't the codebase as it is relatively simple once you can figure out the right process to time notes and fine tune the note detection.
+The hardest part was figuring out a way to develop the maps. At first the idea was to manually map them song by song, but then that quickly developed in finding a way to adapt BeatSaber maps into files that could be read by unity. Due to how expansive and different the maps in BeatSaber are, finding a way to adapt all different data types and different kinds of notes that are available, without breaking anything else was complicated. 
+Another issue was how long and complicated such a dynamic UI as a rhythm game requires. Multiple different pieces of UI all working together in tandem to present a clean yet functional UI was harder than I thought, so I elected to focus on clean code and functionalities, rather than making it look good.
+Overall, I would have liked to be able to work on this project longer, so that I could have focused on the UI as much as possible once the entire codebase was ready. 
+Finally the codebase has been written to be as clear and expandable as possible, so that it can be easily picked up in the future to be worked on and expanded with little issue.
 
-- UI:
-	- Better polished effects for visual feedback;
-	- Created the full UI;
 
 	
